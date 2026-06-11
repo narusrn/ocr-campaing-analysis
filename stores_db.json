@@ -1,0 +1,116 @@
+{
+  "chains": {
+    "7-Eleven": [
+      "7-eleven",
+      "7eleven",
+      "เซเว่น",
+      "seven eleven",
+      "CP  ALL",
+      "(?=.*CP  )(?=.*ALL)",
+      "Eleven",
+      "ELEVEN",
+      "7 -",
+      "(?=.*ซี)(?=.*พี)"
+    ],
+    "FamilyMart": [
+      "familymart",
+      "family mart",
+      "แฟมิลี่มาร์ท",
+      "แฟมิลี่"
+    ],
+    "Lotus": [
+      "lotus",
+      "โลตัส",
+      "tesco"
+    ],
+    "BigC": [
+      "big c",
+      "bigc",
+      "บิ๊กซี",
+      "big-c",
+      "BCM",
+      "bcm"
+    ],
+    "MaxValu": [
+      "maxvalu",
+      "max valu",
+      "แม็กซ์แวลู"
+    ],
+    "Tops": [
+      "tops",
+      "ท็อปส์",
+      "top supermarket"
+    ],
+    "Foodland": [
+      "foodland",
+      "ฟู้ดแลนด์"
+    ],
+    "Gourmet": [
+      "gourmet market",
+      "gourmet",
+      "เกอร์เมต์"
+    ],
+    "Home Fresh": [
+      "home fresh",
+      "fresh mart",
+      "central fresh"
+    ],
+    "Rimping": [
+      "rimping",
+      "ริมปิง"
+    ],
+    "CP AXTRA": [
+      "cp axtra",
+      "axtra",
+      "แม็คโคร",
+      "makro",
+      "macro",
+      "(?=.*พี)(?=.*แอ็ก)"
+    ],
+    "Watsons": [
+      "watsons",
+      "watson",
+      "วัตสัน"
+    ],
+    "Boots": [
+      "boots",
+      "บูทส์"
+    ],
+    "Shopee": [
+      "shopee",
+      "บริษัท เอ คอม",
+      "(?=.*บริษัท)(?=.*ทเวน)(?=.*โฟร์)",
+      "shopee",
+      "ทเวนี้โฟร์",
+      "ท\\s*เวน\\s*ตี้",
+      "ช้\\s*อป\\s*ปิ้ง"
+    ],
+    "Lazada": [
+      "lazada"
+    ],
+    "TikTok": [
+      "tiktok",
+      "tik tok",
+      "tik-tok"
+    ],
+    "Line Shop": [
+      "line shop",
+      "line shopping"
+    ],
+    "CJ Express": [
+      "cj express",
+      "cjexpress",
+      "ซีเจ"
+    ],
+    "Villa": [
+      "villa market",
+      "วิลล่า"
+    ]
+  },
+  "online": [
+    "TikTok",
+    "Line Shop",
+    "Shopee",
+    "Lazada"
+  ]
+}

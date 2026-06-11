@@ -1,0 +1,36 @@
+# Secrets — never commit
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# Streamlit
+.streamlit/stats/
+
+# Local IDE
+.vscode/
+.idea/
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+*streamlit_log.txt
+C*UsersUser*.txt
