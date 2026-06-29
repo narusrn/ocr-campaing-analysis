@@ -809,7 +809,6 @@ def tab_categories():
     section("CATEGORIES")
     render_legend()
 
-    sku_editors: dict = {}
     for cat in list(cats.keys()):
         cd          = cats[cat] if isinstance(cats[cat], dict) else {"keywords": cats[cat], "brands": [], "sku_types": {}}
         kws_list    = cd.get("keywords", [])
@@ -839,17 +838,14 @@ def tab_categories():
                     key=f"ms_br_{gen}_{cat}",
                 )
             with c_sku:
-                st.caption("SKU Types")
-                sku_df = pd.DataFrame(
-                    [{"SKU Type": k, "Keywords": "|".join(v)} for k, v in sku_dict.items()]
-                ) if sku_dict else pd.DataFrame(columns=["SKU Type", "Keywords"])
-                sku_editors[cat] = st.data_editor(
-                    sku_df, use_container_width=True, hide_index=True, num_rows="dynamic",
-                    column_config={
-                        "SKU Type": st.column_config.TextColumn("SKU Type", width="small"),
-                        "Keywords": st.column_config.TextColumn("Keywords (| คั่น)", width="large"),
-                    },
-                    key=f"sku_ed_{gen}_{cat}",
+                sku_default = "\n".join(f"{k} = {'|'.join(v)}" for k, v in sku_dict.items())
+                st.text_area(
+                    "SKU Types",
+                    value=sku_default,
+                    height=200,
+                    key=f"ta_sk_{gen}_{cat}",
+                    placeholder="ผงซักฟอก = powder|ผง|บรีส\nน้ำยาซักผ้า = liquid|เหลว",
+                    help="แต่ละบรรทัด: ชื่อ SKU = keyword1|keyword2",
                 )
             with c_del:
                 st.markdown("<br>" * 4, unsafe_allow_html=True)
@@ -896,11 +892,15 @@ def tab_categories():
             kws    = [k.strip() for k in raw_kw.splitlines() if k.strip()]
             if not kws:
                 continue
-            sel_br   = st.session_state.get(f"ms_br_{gen}_{cat}", cd.get("brands", []))
+            sel_br  = st.session_state.get(f"ms_br_{gen}_{cat}", cd.get("brands", []))
+            raw_sk  = st.session_state.get(f"ta_sk_{gen}_{cat}", "")
             sku_dict = {}
-            for _, row in sku_editors.get(cat, pd.DataFrame()).iterrows():
-                sname = str(row.get("SKU Type", "") or "").strip()
-                skws  = [k.strip() for k in str(row.get("Keywords", "") or "").split("|") if k.strip()]
+            for line in raw_sk.splitlines():
+                if "=" not in line:
+                    continue
+                sname, _, skws_raw = line.partition("=")
+                sname = sname.strip()
+                skws  = [k.strip() for k in skws_raw.split("|") if k.strip()]
                 if sname and skws:
                     sku_dict[sname] = skws
             new_cats[cat] = {"keywords": kws, "brands": sel_br, "sku_types": sku_dict}
