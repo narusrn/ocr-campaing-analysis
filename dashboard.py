@@ -554,15 +554,14 @@ def tab_products():
         else:
             br = (brand_filt.groupby("brand")["item_price"]
                   .agg(revenue="sum", count="count")
-                  .reset_index().sort_values("revenue", ascending=True))
-            ec.bar_h(
-                categories=br["brand"].tolist(),
-                values=br["revenue"].round(0).astype(int).tolist(),
+                  .reset_index().sort_values("revenue", ascending=False))
+            ec.treemap(
+                labels=br["brand"].tolist(),
+                revenues=br["revenue"].round(0).astype(int).tolist(),
                 counts=br["count"].tolist(),
-                color=PALETTE[0],
-                height=min(480, max(260, len(br) * 40)),
-                currency=True,
+                height=320,
             )
+            st.caption("ขนาด tile = Revenue · hover = Count")
 
     with col_sku:
         chart_title("SKU Type Breakdown")
@@ -571,17 +570,17 @@ def tab_products():
         else:
             sk = (sku_filt.groupby("sku_type")["item_price"]
                   .agg(revenue="sum", count="count")
-                  .reset_index().sort_values("revenue", ascending=True).tail(15))
-            ec.bar_h(
-                categories=sk["sku_type"].tolist(),
-                values=sk["revenue"].round(0).astype(int).tolist(),
+                  .reset_index().sort_values("revenue", ascending=False).head(15))
+            ec.treemap(
+                labels=sk["sku_type"].tolist(),
+                revenues=sk["revenue"].round(0).astype(int).tolist(),
                 counts=sk["count"].tolist(),
-                color=PALETTE[0],
-                height=min(480, max(260, len(sk) * 40)),
-                currency=True,
+                height=320,
             )
             if bd_brands:
                 st.caption(f"Brand filter: {', '.join(bd_brands)}")
+            else:
+                st.caption("ขนาด tile = Revenue · hover = Count")
 
     # ── Network / Heatmap toggle ──────────────────────────────────────────────
     section("PRODUCT NETWORK & CO-OCCURRENCE")

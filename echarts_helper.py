@@ -267,6 +267,67 @@ def donut(labels, values, colors=None, height=320, show_count=False):
     }, height)
 
 
+def treemap(labels, revenues, counts=None, height=340):
+    """Treemap sized by revenue. counts shown in tooltip if provided."""
+    data = []
+    for i, (lbl, rev) in enumerate(zip(labels, revenues)):
+        item = {
+            "name": str(lbl),
+            "value": float(rev),
+            "itemStyle": {"color": PALETTE[i % len(PALETTE)]},
+        }
+        if counts is not None:
+            item["count"] = int(counts[i])
+        data.append(item)
+
+    if counts is not None:
+        tt_fmt = JS(
+            "function(p){"
+            "var rev=p.value>=1e6?'฿'+(p.value/1e6).toFixed(1)+'M':"
+            "p.value>=1e3?'฿'+(p.value/1e3).toFixed(0)+'K':"
+            "'฿'+p.value.toLocaleString();"
+            "return p.marker+'<b>'+p.name+'</b><br>Revenue: <b>'+rev+'</b><br>Count: <b>'+p.data.count.toLocaleString()+'</b>';}"
+        )
+    else:
+        tt_fmt = JS(
+            "function(p){"
+            "var rev=p.value>=1e6?'฿'+(p.value/1e6).toFixed(1)+'M':"
+            "p.value>=1e3?'฿'+(p.value/1e3).toFixed(0)+'K':"
+            "'฿'+p.value.toLocaleString();"
+            "return p.marker+'<b>'+p.name+'</b><br>Revenue: <b>'+rev+'</b>';}"
+        )
+
+    lbl_fmt = JS(
+        "function(p){"
+        "var rev=p.value>=1e6?'฿'+(p.value/1e6).toFixed(1)+'M':"
+        "p.value>=1e3?'฿'+(p.value/1e3).toFixed(0)+'K':"
+        "'฿'+p.value.toLocaleString();"
+        "return p.name+'\\n'+rev;}"
+    )
+
+    render({
+        "backgroundColor": "#ffffff", "textStyle": {"color": "#ffffff"},
+        "series": [{
+            "type": "treemap",
+            "data": data,
+            "width": "100%", "height": "100%",
+            "roam": False,
+            "nodeClick": False,
+            "breadcrumb": {"show": False},
+            "label": {
+                "show": True,
+                "formatter": lbl_fmt,
+                "fontSize": 11, "fontWeight": "bold",
+                "color": "#ffffff",
+                "overflow": "truncate",
+            },
+            "itemStyle": {"borderColor": "#ffffff", "borderWidth": 2, "gapWidth": 2},
+            "emphasis": {"itemStyle": {"shadowBlur": 8, "shadowColor": "rgba(0,0,0,0.3)"}},
+        }],
+        "tooltip": {**_tt(), "formatter": tt_fmt},
+    }, height)
+
+
 def heatmap_grid(x_labels, y_labels, matrix, height=300):
     """
     Grid heatmap.
