@@ -252,7 +252,8 @@ def donut(labels, values, colors=None, height=320, show_count=False, currency=Tr
         _fmt_val = ("v>=1e6?'฿'+(v/1e6).toFixed(1)+'M'"
                     ":v>=1e3?'฿'+(v/1e3).toFixed(0)+'K':'฿'+v")
     else:
-        _fmt_val = "v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v"
+        _fmt_val = ("v>=1e6?(v/1e6).toFixed(1)+'M items'"
+                    ":v>=1e3?(v/1e3).toFixed(0)+'K items':v+' items'")
     _tt_fmt = JS(
         f"function(p){{var v=p.value,s={_fmt_val};"
         "return p.name+': '+s+' ('+p.percent.toFixed(0)+'%)'}"
