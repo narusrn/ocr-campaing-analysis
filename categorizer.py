@@ -1,5 +1,6 @@
 import json
 import re
+import unicodedata
 from pathlib import Path
 
 import numpy as np
@@ -155,13 +156,15 @@ _MULTI_SPACE_RE = re.compile(r'\s+')
 
 def _clean(text: str) -> str:
     """Normalize item name for keyword matching:
-    1. remove spaces between Thai chars (OCR artifact: โ ด ฟ → โดฟ)
-    2. collapse all remaining whitespace to single space
-    3. strip and lowercase
+    1. NFC normalize (fix OCR combining-char byte order)
+    2. remove spaces between Thai chars (OCR artifact: โ ด ฟ → โดฟ)
+    3. collapse all remaining whitespace to single space
+    4. strip and lowercase
     """
     if not isinstance(text, str):
         return ""
-    t = _THAI_SPACE_RE.sub('', text)
+    t = unicodedata.normalize('NFC', text)
+    t = _THAI_SPACE_RE.sub('', t)
     t = _MULTI_SPACE_RE.sub(' ', t)
     return t.strip().lower()
 
