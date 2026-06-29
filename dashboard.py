@@ -540,29 +540,27 @@ def tab_products():
 
     all_bd_cats = sorted(c for c in combined["category"].unique() if c != "อื่นๆ")
     bd_cats = st.multiselect(
-        "🔍 Filter Category  —  กรองทั้ง Brand และ SKU Type ด้านล่าง",
+        "🔍 Filter Category  —  กรอง SKU Type ด้านล่าง",
         all_bd_cats, default=all_bd_cats,
         key="bd_cat",
     )
-
+    # base = items with known category (for SKU breakdown)
+    # brand chart always uses ALL items so revenue matches Overview
     base = combined[combined["category"].isin(bd_cats)] if bd_cats else combined
 
     col_brand, col_sku = st.columns(2)
 
     with col_brand:
-        chart_title("Brand — Revenue Share")
-        if base.empty:
-            st.info("ไม่มีข้อมูล")
-        else:
-            br = (base.groupby("brand")["item_price"]
-                  .agg(revenue="sum", count="count")
-                  .reset_index().sort_values("revenue", ascending=False))
-            ec.donut(
-                labels=br["brand"].tolist(),
-                values=br["revenue"].round(0).astype(int).tolist(),
-                height=340,
-                show_count=True,
-            )
+        chart_title("Brand — Revenue Share (ทุก item)")
+        br = (combined.groupby("brand")["item_price"]
+              .agg(revenue="sum", count="count")
+              .reset_index().sort_values("revenue", ascending=False))
+        ec.donut(
+            labels=br["brand"].tolist(),
+            values=br["revenue"].round(0).astype(int).tolist(),
+            height=340,
+            show_count=True,
+        )
 
     with col_sku:
         all_bd_brands = sorted(b for b in base["brand"].unique() if b != "อื่นๆ")
