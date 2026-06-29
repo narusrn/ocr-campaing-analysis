@@ -149,7 +149,21 @@ _model      = None
 _cat_vectors = None
 _cat_names  = None
 
-_THAI_SPACE_RE = re.compile(r'(?<=[฀-๿])\s+(?=[฀-๿])')
+_THAI_SPACE_RE  = re.compile(r'(?<=[฀-๿])\s+(?=[฀-๿])')
+_MULTI_SPACE_RE = re.compile(r'\s+')
+
+
+def _clean(text: str) -> str:
+    """Normalize item name for keyword matching:
+    1. remove spaces between Thai chars (OCR artifact: โ ด ฟ → โดฟ)
+    2. collapse all remaining whitespace to single space
+    3. strip and lowercase
+    """
+    if not isinstance(text, str):
+        return ""
+    t = _THAI_SPACE_RE.sub('', text)
+    t = _MULTI_SPACE_RE.sub(' ', t)
+    return t.strip().lower()
 
 
 # ── Persistence ───────────────────────────────────────────────────────────────
@@ -267,7 +281,7 @@ def _match_brand(name: str, category: str, cats_db: dict, brands_db: dict) -> st
     """Lookup category's brand list, then check global brands_db keywords."""
     cat_data    = cats_db.get(category, {})
     brand_names = cat_data.get("brands", []) if isinstance(cat_data, dict) else []
-    cleaned     = _THAI_SPACE_RE.sub('', (name or "")).lower()
+    cleaned = _clean(name)
     for brand_name in brand_names:
         kws = brands_db.get(brand_name, [])
         if any(k.lower() in cleaned for k in kws):
@@ -283,7 +297,7 @@ def _match_in_cat(name: str, category: str, cats_db: dict, field: str) -> str:
     mapping = cat_data.get(field, {})
     if not mapping:
         return "อื่นๆ"
-    cleaned = _THAI_SPACE_RE.sub('', (name or "")).lower()
+    cleaned = _clean(name)
     for label, kws in mapping.items():
         if any(k.lower() in cleaned for k in kws):
             return label
