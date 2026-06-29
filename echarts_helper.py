@@ -217,7 +217,7 @@ def heatmap_grid(x_labels, y_labels, matrix, height=300):
         "visualMap": {"min": 0, "max": max_v, "calculable": True,
                       "orient": "horizontal", "bottom": 0, "left": "center",
                       "textStyle": {"color": "#7C8DA0", "fontSize": 9},
-                      "inRange": {"color": ["#E8EFF9", "#9DC4EF", "#0064F0", "#FB654E"]}},
+                      "inRange": {"color": ["#E4002B", "#FF9999", "#FFEE88", "#88DD88", "#1B7A2E"]}},
         "series": [{"type": "heatmap", "data": data,
                     "itemStyle": {"borderColor": "#E8EFF9", "borderWidth": 1},
                     "label": {"show": True, "color": "#ffffff", "fontSize": 8},
