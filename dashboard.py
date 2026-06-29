@@ -484,11 +484,19 @@ def tab_overview():
 # Tab 2 — Products
 # ═════════════════════════════════════════════════════════════════════════════
 def tab_products():
+    # Map each campaign display name → its brand via keyword match on brands_db
+    _brands_db = load_brands_db()
+    def _campaign_brand(campaign: str) -> str:
+        low = campaign.lower()
+        for bname, kws in _brands_db.items():
+            if any(k.lower() in low for k in kws):
+                return bname
+        return campaign  # last resort
+
     cat_dfs = {}
     for name, df in filtered.items():
         cdf = get_categorized(name, df).copy()
-        # ponytail: fallback brand to campaign name when ML found no match
-        cdf.loc[cdf["brand"] == "อื่นๆ", "brand"] = name
+        cdf.loc[cdf["brand"] == "อื่นๆ", "brand"] = _campaign_brand(name)
         cat_dfs[name] = cdf
     combined = pd.concat(cat_dfs.values())
 
