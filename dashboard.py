@@ -4,9 +4,7 @@ import pandas as pd
 import echarts_helper as ec
 from data_loader import (load_data, get_slip_df, compute_rfm, compute_basket_matrix,
                          load_stores_db, save_stores_db,
-                         DEFAULT_CHAIN_KEYWORDS, DEFAULT_ONLINE_CHAINS,
-                         load_brands_db, save_brands_db,
-                         DEFAULT_BRAND_KEYWORDS, classify_brand)
+                         DEFAULT_CHAIN_KEYWORDS, DEFAULT_ONLINE_CHAINS)
 from categorizer import (add_categories_to_df, preprocess_name,
                          load_categories_db, save_categories_db,
                          reset_cache, DEFAULT_CATEGORIES)
@@ -25,6 +23,23 @@ st.set_page_config(
 
 PALETTE = ec.PALETTE
 SEGMENT_COLORS = ec.SEGMENT_COLORS
+
+
+def _kv_block_to_str(mapping: dict) -> str:
+    return "\n".join(f"{name} = {'|'.join(kws)}" for name, kws in mapping.items())
+
+
+def _parse_kv_block(raw: str) -> dict:
+    out = {}
+    for line in raw.splitlines():
+        if "=" not in line:
+            continue
+        name, _, kws_raw = line.partition("=")
+        name = name.strip()
+        kws = [k.strip() for k in kws_raw.split("|") if k.strip()]
+        if name and kws:
+            out[name] = kws
+    return out
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -504,11 +519,6 @@ def tab_products():
     # ── Brand & SKU Breakdown ─────────────────────────────────────────────────
     section("BRAND BREAKDOWN")
 
-    _brands_db = load_brands_db()
-    combined["brand"] = combined["item_name"].fillna("").apply(
-        lambda n: classify_brand(n, _brands_db)
-    )
-
     c1, c2 = st.columns([1, 2])
     with c1:
         chart_title("Revenue Share by Brand")
@@ -537,10 +547,10 @@ def tab_products():
         )
         st.caption("Revenue (฿) vs จำนวน Item แยกแบรนด์")
 
-    # ── SKU Breakdown ─────────────────────────────────────────────────────────
-    section("SKU BREAKDOWN")
+    # ── SKU Type Breakdown ────────────────────────────────────────────────────
+    section("SKU TYPE BREAKDOWN")
 
-    fc1, fc2, fc3, fc4 = st.columns([2, 2, 1, 1])
+    fc1, fc2, fc3 = st.columns([2, 2, 1])
     with fc1:
         sku_brands = st.multiselect(
             "Filter Brand", sorted(b for b in combined["brand"].unique() if b != "อื่นๆ"),
@@ -552,8 +562,6 @@ def tab_products():
             key="sku_cat", placeholder="ทุก Category",
         )
     with fc3:
-        top_n_sku = st.slider("Top N", 10, 50, 20, 5, key="sku_n")
-    with fc4:
         sku_metric = st.radio("Sort by", ["Count", "Revenue"], horizontal=True, key="sku_metric")
 
     mask = pd.Series(True, index=combined.index)
@@ -562,27 +570,27 @@ def tab_products():
     if sku_cats:
         mask &= combined["category"].isin(sku_cats)
 
-    sku_df = (
-        combined[mask]
-        .assign(sku=lambda d: d["item_name"].fillna("").apply(preprocess_name).str[:50])
-        .groupby("sku")
-        .agg(count=("item_price", "count"), revenue=("item_price", "sum"))
-        .reset_index()
-    )
-    if sku_df.empty:
-        st.info("ไม่พบ SKU ที่ตรงกับ filter ที่เลือก")
-    elif sku_metric == "Revenue":
-        sku_top = sku_df.sort_values("revenue", ascending=True).tail(top_n_sku)
-        ec.bar_h(categories=sku_top["sku"].tolist(),
-                 values=sku_top["revenue"].round(0).astype(int).tolist(),
-                 color=PALETTE[0], height=max(320, top_n_sku * 30), currency=True)
-        st.caption(f"Top {top_n_sku} SKUs by Revenue · ชื่อ cleaned จาก OCR")
+    sku_filt = combined[mask]
+    if sku_filt.empty:
+        st.info("ไม่พบข้อมูลที่ตรงกับ filter ที่เลือก")
     else:
-        sku_top = sku_df.sort_values("count", ascending=True).tail(top_n_sku)
-        ec.bar_h(categories=sku_top["sku"].tolist(),
-                 values=sku_top["count"].tolist(),
-                 color=PALETTE[2], height=max(320, top_n_sku * 30))
-        st.caption(f"Top {top_n_sku} SKUs by Count · ชื่อ cleaned จาก OCR")
+        skut_agg = (sku_filt.groupby("sku_type")
+                    .agg(count=("item_price", "count"), revenue=("item_price", "sum"))
+                    .reset_index()
+                    .sort_values("count" if sku_metric == "Count" else "revenue", ascending=True))
+        if sku_metric == "Revenue":
+            ec.bar_h(
+                categories=skut_agg["sku_type"].tolist(),
+                values=skut_agg["revenue"].round(0).astype(int).tolist(),
+                color=PALETTE[0], height=max(280, len(skut_agg) * 36), currency=True,
+            )
+        else:
+            ec.bar_h(
+                categories=skut_agg["sku_type"].tolist(),
+                values=skut_agg["count"].tolist(),
+                color=PALETTE[2], height=max(280, len(skut_agg) * 36),
+            )
+        st.caption(f"SKU Type breakdown by {sku_metric} · กรองตาม Brand/Category ที่เลือก")
 
     # ── Network / Heatmap toggle ──────────────────────────────────────────────
     section("PRODUCT NETWORK & CO-OCCURRENCE")
@@ -783,7 +791,7 @@ def tab_categories():
 
     # ── Action bar ────────────────────────────────────────────────────────────
     section("CATEGORY KEYWORD MANAGEMENT")
-    total_kw = sum(len(v) for v in cats.values())
+    total_kw = sum(len(v["keywords"]) if isinstance(v, dict) else len(v) for v in cats.values())
     col_info, col_save, col_reset = st.columns([3, 1, 1])
     with col_info:
         st.caption(f"{len(cats)} categories · {total_kw} total keywords · edit below then Save & Apply")
@@ -795,10 +803,18 @@ def tab_categories():
     if save_clicked:
         new_cats: dict = {}
         for cat in list(cats.keys()):
-            raw = st.session_state.get(f"ta_{gen}_{cat}", "\n".join(cats[cat]))
-            kws = [k.strip() for k in raw.splitlines() if k.strip()]
-            if kws:
-                new_cats[cat] = kws
+            cd = cats[cat] if isinstance(cats[cat], dict) else {"keywords": cats[cat], "brands": {}, "sku_types": {}}
+            raw_kw = st.session_state.get(f"ta_kw_{gen}_{cat}", "\n".join(cd.get("keywords", [])))
+            kws = [k.strip() for k in raw_kw.splitlines() if k.strip()]
+            if not kws:
+                continue
+            raw_br = st.session_state.get(f"ta_br_{gen}_{cat}", _kv_block_to_str(cd.get("brands", {})))
+            raw_sk = st.session_state.get(f"ta_sk_{gen}_{cat}", _kv_block_to_str(cd.get("sku_types", {})))
+            new_cats[cat] = {
+                "keywords":  kws,
+                "brands":    _parse_kv_block(raw_br),
+                "sku_types": _parse_kv_block(raw_sk),
+            }
         save_categories_db(new_cats)
         reset_cache()
         get_categorized.clear()
@@ -821,23 +837,42 @@ def tab_categories():
 
     # ── Existing categories ───────────────────────────────────────────────────
     for cat in list(cats.keys()):
-        color  = CAT_COLORS.get(cat, "#8b9dc3")
-        dot    = (f'<span style="display:inline-block;width:10px;height:10px;'
-                  f'border-radius:50%;background:{color};margin-right:6px"></span>')
-        label  = f"{cat}  —  {len(cats[cat])} keywords"
+        cd = cats[cat] if isinstance(cats[cat], dict) else {"keywords": cats[cat], "brands": {}, "sku_types": {}}
+        kws_list    = cd.get("keywords", [])
+        brands_dict = cd.get("brands", {})
+        sku_dict    = cd.get("sku_types", {})
+        color = CAT_COLORS.get(cat, "#8b9dc3")
+        dot   = (f'<span style="display:inline-block;width:10px;height:10px;'
+                 f'border-radius:50%;background:{color};margin-right:6px"></span>')
+        label = f"{cat}  —  {len(kws_list)} keywords · {len(brands_dict)} brands · {len(sku_dict)} SKU types"
 
         with st.expander(label, expanded=False):
             st.markdown(dot + f"**{cat}**", unsafe_allow_html=True)
             col_ta, col_del = st.columns([5, 1])
             with col_ta:
                 st.text_area(
-                    "keywords",
-                    value="\n".join(cats[cat]),
-                    height=max(110, min(320, len(cats[cat]) * 24)),
-                    key=f"ta_{gen}_{cat}",
-                    label_visibility="collapsed",
+                    "Category Keywords",
+                    value="\n".join(kws_list),
+                    height=max(90, min(240, len(kws_list) * 20)),
+                    key=f"ta_kw_{gen}_{cat}",
                     placeholder="one keyword per line…",
-                    help="One keyword or phrase per line. Supports Thai and English.",
+                    help="ML classification keywords — one per line",
+                )
+                st.text_area(
+                    "Brands  (Name = kw1|kw2|kw3)",
+                    value=_kv_block_to_str(brands_dict),
+                    height=max(80, min(200, len(brands_dict) * 24 + 40)),
+                    key=f"ta_br_{gen}_{cat}",
+                    placeholder="Dove = โดฟ|dove\nPond's = พอนด์ส|ponds|pond",
+                    help="Brand name = keywords separated by | — case-insensitive substring match on item_name",
+                )
+                st.text_area(
+                    "SKU Types  (Name = kw1|kw2|kw3)",
+                    value=_kv_block_to_str(sku_dict),
+                    height=max(80, min(200, len(sku_dict) * 24 + 40)),
+                    key=f"ta_sk_{gen}_{cat}",
+                    placeholder="เซรั่ม = serum|เซรั่ม\nครีมกลางวัน = day cream|เดย์ครีม",
+                    help="SKU type = keywords separated by | — case-insensitive substring match on item_name",
                 )
             with col_del:
                 st.markdown("<br>" * 3, unsafe_allow_html=True)
@@ -862,7 +897,7 @@ def tab_categories():
             name = new_name.strip()
             kws  = [k.strip() for k in new_kws.splitlines() if k.strip()]
             if name and kws:
-                st.session_state.cats_working[name] = kws
+                st.session_state.cats_working[name] = {"keywords": kws, "brands": {}, "sku_types": {}}
                 for k in ("new_cat_name", "new_cat_kws"):
                     st.session_state.pop(k, None)
                 st.rerun()
@@ -989,86 +1024,6 @@ def tab_categories():
             else:
                 st.warning("Fill in both chain name and at least one keyword.")
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # Brand Keyword Management
-    # ══════════════════════════════════════════════════════════════════════════
-    st.divider()
-
-    if "brands_working" not in st.session_state:
-        st.session_state.brands_working = load_brands_db()
-    if "brands_gen" not in st.session_state:
-        st.session_state.brands_gen = 0
-
-    brands = st.session_state.brands_working
-    bgen   = st.session_state.brands_gen
-
-    section("BRAND KEYWORDS")
-    col_info, col_save, col_reset = st.columns([3, 1, 1])
-    with col_info:
-        st.caption(f"{len(brands)} brands · {sum(len(v) for v in brands.values())} keywords · case-insensitive substring match")
-    with col_save:
-        b_save = st.button("💾 Save & Apply", type="primary", key="brand_save", use_container_width=True)
-    with col_reset:
-        b_reset = st.button("↺ Defaults", key="brand_reset", use_container_width=True)
-
-    if b_save:
-        new_brands: dict = {}
-        for bname in list(brands.keys()):
-            raw = st.session_state.get(f"bta_{bgen}_{bname}", "\n".join(brands[bname]))
-            kws = [k.strip() for k in raw.splitlines() if k.strip()]
-            if kws:
-                new_brands[bname] = kws
-        save_brands_db(new_brands)
-        st.session_state.brands_working = new_brands
-        st.session_state.brands_gen = bgen + 1
-        st.success(f"Saved {len(new_brands)} brands — จะมีผลทันทีในหน้า Products")
-        st.rerun()
-
-    if b_reset:
-        new_brands = dict(DEFAULT_BRAND_KEYWORDS)
-        save_brands_db(new_brands)
-        st.session_state.brands_working = new_brands
-        st.session_state.brands_gen = bgen + 1
-        st.rerun()
-
-    for bname in list(brands.keys()):
-        with st.expander(f"**{bname}**  —  {len(brands[bname])} keywords"):
-            col_ta, col_del = st.columns([5, 1])
-            with col_ta:
-                st.text_area(
-                    "keywords", value="\n".join(brands[bname]),
-                    height=max(80, min(240, len(brands[bname]) * 24)),
-                    key=f"bta_{bgen}_{bname}", label_visibility="collapsed",
-                    placeholder="one keyword per line…",
-                    help="Case-insensitive substring match บน item_name (หลัง clean OCR spaces)",
-                )
-            with col_del:
-                st.markdown("<br>" * 3, unsafe_allow_html=True)
-                if st.button("🗑️", key=f"bdel_{bgen}_{bname}", use_container_width=True,
-                             help=f"Delete '{bname}'"):
-                    del st.session_state.brands_working[bname]
-                    st.rerun()
-
-    st.divider()
-    section("ADD NEW BRAND")
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col1:
-        new_bname = st.text_input("Brand name", key="new_brand_name", placeholder="e.g. Coke")
-    with col2:
-        new_bkws = st.text_area("Keywords (one per line)", key="new_brand_kws",
-                                height=80, placeholder="coca-cola\nโค้ก\ncoke")
-    with col3:
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        if st.button("➕ Add Brand", key="add_brand_btn", use_container_width=True):
-            bn  = new_bname.strip()
-            kws = [k.strip() for k in new_bkws.splitlines() if k.strip()]
-            if bn and kws:
-                st.session_state.brands_working[bn] = kws
-                for k in ("new_brand_name", "new_brand_kws"):
-                    st.session_state.pop(k, None)
-                st.rerun()
-            else:
-                st.warning("Fill in both brand name and at least one keyword.")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
