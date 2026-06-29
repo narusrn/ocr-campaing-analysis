@@ -6,6 +6,7 @@ from pathlib import Path
 
 DATA_PATH    = Path(__file__).parent / "data" / "Slips.xlsx"
 _STORES_PATH = Path(__file__).parent / "stores_db.json"
+_BRANDS_PATH = Path(__file__).parent / "brands_db.json"
 
 CAMPAIGNS = {
     "PondsxAtlas":              "Pond's x Atlas",
@@ -36,7 +37,7 @@ DEFAULT_CHAIN_KEYWORDS: dict[str, list[str]] = {
 }
 DEFAULT_ONLINE_CHAINS: set[str] = {"Shopee", "Lazada", "TikTok", "Line Shop"}
 
-BRAND_KEYWORDS: dict[str, list[str]] = {
+DEFAULT_BRAND_KEYWORDS: dict[str, list[str]] = {
     "Pond's":   ["พอนด์", "ponds", "pond"],
     "Breeze":   ["เบรซ", "breeze"],
     "Sunlight": ["ซันไลท์", "sunlight"],
@@ -54,11 +55,27 @@ BRAND_KEYWORDS: dict[str, list[str]] = {
 _THAI_SPACE_RE = re.compile(r'(?<=[฀-๿])\s+(?=[฀-๿])')
 
 
-def classify_brand(name: str) -> str:
+def load_brands_db() -> dict[str, list[str]]:
+    if _BRANDS_PATH.exists():
+        with open(_BRANDS_PATH, encoding="utf-8") as f:
+            saved = json.load(f)
+        for name, kws in DEFAULT_BRAND_KEYWORDS.items():
+            if name not in saved:
+                saved[name] = kws
+        return saved
+    return dict(DEFAULT_BRAND_KEYWORDS)
+
+
+def save_brands_db(brands: dict[str, list[str]]) -> None:
+    with open(_BRANDS_PATH, "w", encoding="utf-8") as f:
+        json.dump(brands, f, ensure_ascii=False, indent=2)
+
+
+def classify_brand(name: str, brands: dict) -> str:
     if not isinstance(name, str):
         return "อื่นๆ"
     cleaned = _THAI_SPACE_RE.sub('', name).lower()
-    for brand, keywords in BRAND_KEYWORDS.items():
+    for brand, keywords in brands.items():
         if any(k in cleaned for k in keywords):
             return brand
     return "อื่นๆ"

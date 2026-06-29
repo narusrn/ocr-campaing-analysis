@@ -4,7 +4,9 @@ import pandas as pd
 import echarts_helper as ec
 from data_loader import (load_data, get_slip_df, compute_rfm, compute_basket_matrix,
                          load_stores_db, save_stores_db,
-                         DEFAULT_CHAIN_KEYWORDS, DEFAULT_ONLINE_CHAINS, classify_brand)
+                         DEFAULT_CHAIN_KEYWORDS, DEFAULT_ONLINE_CHAINS,
+                         load_brands_db, save_brands_db,
+                         DEFAULT_BRAND_KEYWORDS, classify_brand)
 from categorizer import (add_categories_to_df, preprocess_name,
                          load_categories_db, save_categories_db,
                          reset_cache, DEFAULT_CATEGORIES)
@@ -500,52 +502,87 @@ def tab_products():
         st.caption("Item Distribution by Category")
 
     # ── Brand & SKU Breakdown ─────────────────────────────────────────────────
-    section("BRAND & SKU BREAKDOWN")
+    section("BRAND BREAKDOWN")
 
-    combined["brand"] = combined["item_name"].fillna("").apply(classify_brand)
+    _brands_db = load_brands_db()
+    combined["brand"] = combined["item_name"].fillna("").apply(
+        lambda n: classify_brand(n, _brands_db)
+    )
 
-    c1, c2 = st.columns(2)
+    c1, c2 = st.columns([1, 2])
     with c1:
-        chart_title("Revenue by Brand (฿)")
+        chart_title("Revenue Share by Brand")
         brand_rev = (combined.groupby("brand")["item_price"].sum()
-                     .reset_index().sort_values("item_price"))
-        ec.bar_h(categories=brand_rev["brand"].tolist(),
-                 values=brand_rev["item_price"].round(0).astype(int).tolist(),
-                 color=PALETTE[0], height=320, currency=True)
+                     .reset_index().sort_values("item_price", ascending=False))
+        ec.donut(
+            labels=brand_rev["brand"].tolist(),
+            values=brand_rev["item_price"].round(0).astype(int).tolist(),
+            height=320, show_count=True,
+        )
+        st.caption("สัดส่วนรายได้แยกแบรนด์")
 
     with c2:
-        chart_title("Item Count by Brand")
-        brand_cnt = (combined.groupby("brand")["item_price"].count()
-                     .reset_index().rename(columns={"item_price": "count"})
-                     .sort_values("count"))
-        ec.bar_h(categories=brand_cnt["brand"].tolist(),
-                 values=brand_cnt["count"].tolist(),
-                 color=PALETTE[2], height=320)
+        chart_title("Revenue & Count by Brand")
+        brand_agg = (combined.groupby("brand")
+                     .agg(revenue=("item_price", "sum"), count=("item_price", "count"))
+                     .reset_index()
+                     .sort_values("revenue"))
+        ec.bar_v_multi(
+            categories=brand_agg["brand"].tolist(),
+            series_list=[
+                {"name": "Revenue (฿)", "values": brand_agg["revenue"].round(0).astype(int).tolist(), "color": PALETTE[0]},
+                {"name": "Count",       "values": brand_agg["count"].tolist(),                        "color": PALETTE[2]},
+            ],
+            height=320,
+        )
+        st.caption("Revenue (฿) vs จำนวน Item แยกแบรนด์")
 
-    col_n, col_m, _ = st.columns([1, 1, 3])
-    with col_n:
-        top_n_sku = st.slider("Top N SKUs", 10, 50, 20, 5, key="sku_n")
-    with col_m:
-        sku_metric = st.radio("Sort by", ["Count", "Revenue (฿)"], horizontal=True, key="sku_metric")
+    # ── SKU Breakdown ─────────────────────────────────────────────────────────
+    section("SKU BREAKDOWN")
+
+    fc1, fc2, fc3, fc4 = st.columns([2, 2, 1, 1])
+    with fc1:
+        sku_brands = st.multiselect(
+            "Filter Brand", sorted(b for b in combined["brand"].unique() if b != "อื่นๆ"),
+            key="sku_brand", placeholder="ทุก Brand",
+        )
+    with fc2:
+        sku_cats = st.multiselect(
+            "Filter Category", sorted(c for c in combined["category"].unique() if c != "อื่นๆ"),
+            key="sku_cat", placeholder="ทุก Category",
+        )
+    with fc3:
+        top_n_sku = st.slider("Top N", 10, 50, 20, 5, key="sku_n")
+    with fc4:
+        sku_metric = st.radio("Sort by", ["Count", "Revenue"], horizontal=True, key="sku_metric")
+
+    mask = pd.Series(True, index=combined.index)
+    if sku_brands:
+        mask &= combined["brand"].isin(sku_brands)
+    if sku_cats:
+        mask &= combined["category"].isin(sku_cats)
 
     sku_df = (
-        combined
-        .assign(sku=lambda d: d["item_name"].fillna("").apply(preprocess_name).str[:45])
+        combined[mask]
+        .assign(sku=lambda d: d["item_name"].fillna("").apply(preprocess_name).str[:50])
         .groupby("sku")
         .agg(count=("item_price", "count"), revenue=("item_price", "sum"))
         .reset_index()
     )
-    if sku_metric == "Revenue (฿)":
+    if sku_df.empty:
+        st.info("ไม่พบ SKU ที่ตรงกับ filter ที่เลือก")
+    elif sku_metric == "Revenue":
         sku_top = sku_df.sort_values("revenue", ascending=True).tail(top_n_sku)
         ec.bar_h(categories=sku_top["sku"].tolist(),
                  values=sku_top["revenue"].round(0).astype(int).tolist(),
-                 color=PALETTE[0], height=max(300, top_n_sku * 30), currency=True)
+                 color=PALETTE[0], height=max(320, top_n_sku * 30), currency=True)
+        st.caption(f"Top {top_n_sku} SKUs by Revenue · ชื่อ cleaned จาก OCR")
     else:
         sku_top = sku_df.sort_values("count", ascending=True).tail(top_n_sku)
         ec.bar_h(categories=sku_top["sku"].tolist(),
                  values=sku_top["count"].tolist(),
-                 color=PALETTE[2], height=max(300, top_n_sku * 30))
-    st.caption(f"Top {top_n_sku} SKUs by {sku_metric} · ชื่อ cleaned จาก OCR")
+                 color=PALETTE[2], height=max(320, top_n_sku * 30))
+        st.caption(f"Top {top_n_sku} SKUs by Count · ชื่อ cleaned จาก OCR")
 
     # ── Network / Heatmap toggle ──────────────────────────────────────────────
     section("PRODUCT NETWORK & CO-OCCURRENCE")
@@ -951,6 +988,87 @@ def tab_categories():
                 st.rerun()
             else:
                 st.warning("Fill in both chain name and at least one keyword.")
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # Brand Keyword Management
+    # ══════════════════════════════════════════════════════════════════════════
+    st.divider()
+
+    if "brands_working" not in st.session_state:
+        st.session_state.brands_working = load_brands_db()
+    if "brands_gen" not in st.session_state:
+        st.session_state.brands_gen = 0
+
+    brands = st.session_state.brands_working
+    bgen   = st.session_state.brands_gen
+
+    section("BRAND KEYWORDS")
+    col_info, col_save, col_reset = st.columns([3, 1, 1])
+    with col_info:
+        st.caption(f"{len(brands)} brands · {sum(len(v) for v in brands.values())} keywords · case-insensitive substring match")
+    with col_save:
+        b_save = st.button("💾 Save & Apply", type="primary", key="brand_save", use_container_width=True)
+    with col_reset:
+        b_reset = st.button("↺ Defaults", key="brand_reset", use_container_width=True)
+
+    if b_save:
+        new_brands: dict = {}
+        for bname in list(brands.keys()):
+            raw = st.session_state.get(f"bta_{bgen}_{bname}", "\n".join(brands[bname]))
+            kws = [k.strip() for k in raw.splitlines() if k.strip()]
+            if kws:
+                new_brands[bname] = kws
+        save_brands_db(new_brands)
+        st.session_state.brands_working = new_brands
+        st.session_state.brands_gen = bgen + 1
+        st.success(f"Saved {len(new_brands)} brands — จะมีผลทันทีในหน้า Products")
+        st.rerun()
+
+    if b_reset:
+        new_brands = dict(DEFAULT_BRAND_KEYWORDS)
+        save_brands_db(new_brands)
+        st.session_state.brands_working = new_brands
+        st.session_state.brands_gen = bgen + 1
+        st.rerun()
+
+    for bname in list(brands.keys()):
+        with st.expander(f"**{bname}**  —  {len(brands[bname])} keywords"):
+            col_ta, col_del = st.columns([5, 1])
+            with col_ta:
+                st.text_area(
+                    "keywords", value="\n".join(brands[bname]),
+                    height=max(80, min(240, len(brands[bname]) * 24)),
+                    key=f"bta_{bgen}_{bname}", label_visibility="collapsed",
+                    placeholder="one keyword per line…",
+                    help="Case-insensitive substring match บน item_name (หลัง clean OCR spaces)",
+                )
+            with col_del:
+                st.markdown("<br>" * 3, unsafe_allow_html=True)
+                if st.button("🗑️", key=f"bdel_{bgen}_{bname}", use_container_width=True,
+                             help=f"Delete '{bname}'"):
+                    del st.session_state.brands_working[bname]
+                    st.rerun()
+
+    st.divider()
+    section("ADD NEW BRAND")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col1:
+        new_bname = st.text_input("Brand name", key="new_brand_name", placeholder="e.g. Coke")
+    with col2:
+        new_bkws = st.text_area("Keywords (one per line)", key="new_brand_kws",
+                                height=80, placeholder="coca-cola\nโค้ก\ncoke")
+    with col3:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        if st.button("➕ Add Brand", key="add_brand_btn", use_container_width=True):
+            bn  = new_bname.strip()
+            kws = [k.strip() for k in new_bkws.splitlines() if k.strip()]
+            if bn and kws:
+                st.session_state.brands_working[bn] = kws
+                for k in ("new_brand_name", "new_brand_kws"):
+                    st.session_state.pop(k, None)
+                st.rerun()
+            else:
+                st.warning("Fill in both brand name and at least one keyword.")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
