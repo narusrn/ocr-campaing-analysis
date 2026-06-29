@@ -506,6 +506,10 @@ def tab_products():
         get_categorized.clear()
         st.rerun()
 
+    if st.button("🔄 Reload Classification", help="ใช้หลัง Save config ใน Categories tab เพื่อ re-classify ใหม่"):
+        get_categorized.clear()
+        st.rerun()
+
     # ── AI Insights ───────────────────────────────────────────────────────────
     section("AI PRODUCT INSIGHTS")
     import json as _json
