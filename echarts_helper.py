@@ -86,7 +86,7 @@ def _val_ax(currency=False):
 
 
 # ── Chart builders ─────────────────────────────────────────────────────────────
-def bar_v(categories, values, color=None, height=280, currency=False):
+def bar_v(categories, values, color=None, height=280, currency=False, rotate=0):
     """Vertical bar chart."""
     color = color or PALETTE[0]
     if currency:
@@ -98,7 +98,7 @@ def bar_v(categories, values, color=None, height=280, currency=False):
     render({
         "backgroundColor": "#ffffff", "textStyle": {"color": "#3D4F66"},
         "grid": {"containLabel": True, "top": 28, "bottom": 20, "left": 8, "right": 8},
-        "xAxis": _cat_ax(categories),
+        "xAxis": _cat_ax(categories, rotate=rotate),
         "yAxis": _val_ax(currency),
         "series": [{"type": "bar", "data": [float(v) for v in values],
                     "itemStyle": {"color": color, "borderRadius": [4, 4, 0, 0]},

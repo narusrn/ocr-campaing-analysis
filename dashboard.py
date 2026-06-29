@@ -565,14 +565,14 @@ def tab_products():
         else:
             sk = (sku_filt.groupby("sku_type")["item_price"]
                   .agg(revenue="sum", count="count")
-                  .reset_index().sort_values("revenue", ascending=True).tail(15))
-            ec.bar_h(
+                  .reset_index().sort_values("revenue", ascending=False).head(15))
+            ec.bar_v(
                 categories=sk["sku_type"].tolist(),
                 values=sk["revenue"].round(0).astype(int).tolist(),
-                counts=sk["count"].tolist(),
                 color=PALETTE[0],
-                height=min(480, max(260, len(sk) * 38)),
+                height=340,
                 currency=True,
+                rotate=30,
             )
 
     # ── Network / Heatmap toggle ──────────────────────────────────────────────
