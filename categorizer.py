@@ -307,18 +307,50 @@ def _match_in_cat(name: str, category: str, cats_db: dict, field: str) -> str:
     return "อื่นๆ"
 
 
+# ── Keyword-first category pre-pass ──────────────────────────────────────────
+
+def _keyword_classify(name: str, cats_db: dict) -> str | None:
+    """Check category keywords via substring match. Returns category name or None."""
+    cleaned = _clean(name)
+    for cat, cat_data in cats_db.items():
+        kws = cat_data["keywords"] if isinstance(cat_data, dict) else cat_data
+        if any(k.lower() in cleaned for k in kws):
+            return cat
+    return None
+
+
 # ── Main entry point ──────────────────────────────────────────────────────────
 
 def add_categories_to_df(df, item_col: str = "item_name"):
     """Add category, cat_score, brand, sku_type columns. Returns df."""
-    names = df[item_col].fillna("").tolist()
+    names   = df[item_col].fillna("").tolist()
+    cats_db = load_categories_db()
 
-    results    = classify_items(names)
-    categories = [r[0] for r in results]
+    # Step 1: keyword pre-pass — fast, deterministic, user-configured
+    kw_results = [_keyword_classify(n, cats_db) for n in names]
+
+    # Step 2: ML for items that keyword didn't catch
+    needs_ml   = [i for i, r in enumerate(kw_results) if r is None]
+    ml_results = {}
+    if needs_ml:
+        ml_cats = classify_items([names[i] for i in needs_ml])
+        ml_results = {i: ml_cats[j] for j, i in enumerate(needs_ml)}
+
+    # Merge: keyword wins, ML is fallback
+    categories = []
+    cat_scores = []
+    for i, kw_cat in enumerate(kw_results):
+        if kw_cat is not None:
+            categories.append(kw_cat)
+            cat_scores.append(1.0)          # keyword match = full confidence
+        else:
+            ml_cat, ml_score = ml_results[i]
+            categories.append(ml_cat)
+            cat_scores.append(ml_score)
+
     df["category"]  = categories
-    df["cat_score"] = [r[1] for r in results]
+    df["cat_score"] = cat_scores
 
-    cats_db   = load_categories_db()
     brands_db = load_brands_db()
     df["brand"]    = [_match_brand(n, c, cats_db, brands_db)    for n, c in zip(names, categories)]
     df["sku_type"] = [_match_in_cat(n, c, cats_db, "sku_types") for n, c in zip(names, categories)]
