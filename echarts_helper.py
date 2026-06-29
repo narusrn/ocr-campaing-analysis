@@ -135,6 +135,60 @@ def bar_h(categories, values, color=None, height=300, currency=False):
     }, height)
 
 
+def bar_h_dual(categories, revenues, counts, height=320):
+    """Horizontal bar with dual x-axis: Revenue (bottom, ฿) + Count (top)."""
+    lbl_rev = JS("function(p){if(p.value>=1e6)return'฿'+(p.value/1e6).toFixed(1)+'M';"
+                 "if(p.value>=1e3)return'฿'+(p.value/1e3).toFixed(0)+'K';"
+                 "return'฿'+p.value.toLocaleString();}")
+    lbl_cnt = JS("function(p){return p.value.toLocaleString()}")
+    ydata = [str(c) for c in categories]
+    render({
+        "backgroundColor": "#ffffff", "textStyle": {"color": "#3D4F66"},
+        "grid": {"containLabel": True, "top": 40, "bottom": 36, "left": 8, "right": 90},
+        "xAxis": [
+            {"type": "value", "position": "bottom",
+             "splitLine": {"lineStyle": {"color": "#C4D8F8", "type": "dashed"}},
+             "axisLine": {"show": False}, "axisTick": {"show": False},
+             "axisLabel": {"color": "#7C8DA0", "fontSize": 9,
+                           "formatter": JS("function(v){return v>=1e6?'฿'+(v/1e6).toFixed(1)+'M':"
+                                           "v>=1e3?'฿'+(v/1e3).toFixed(0)+'K':'฿'+v}")}},
+            {"type": "value", "position": "top",
+             "splitLine": {"show": False},
+             "axisLine": {"show": False}, "axisTick": {"show": False},
+             "axisLabel": {"color": "#7C8DA0", "fontSize": 9,
+                           "formatter": JS("function(v){return v.toLocaleString()}")}},
+        ],
+        "yAxis": {"type": "category", "data": ydata,
+                  "axisLine": {"lineStyle": {"color": "#BDD0F0"}}, "axisTick": {"show": False},
+                  "axisLabel": {"color": "#182B45", "fontSize": 10}},
+        "legend": {"data": ["Revenue (฿)", "Count"], "top": 4,
+                   "textStyle": {"color": "#3D4F66", "fontSize": 11}},
+        "series": [
+            {"name": "Revenue (฿)", "type": "bar", "xAxisIndex": 0,
+             "data": [float(v) for v in revenues],
+             "itemStyle": {"color": PALETTE[0], "borderRadius": [0, 4, 4, 0]},
+             "barMaxWidth": 18,
+             "label": {"show": True, "position": "right", "color": "#3D4F66", "fontSize": 9,
+                       "formatter": lbl_rev}},
+            {"name": "Count", "type": "bar", "xAxisIndex": 1,
+             "data": [float(v) for v in counts],
+             "itemStyle": {"color": PALETTE[2], "borderRadius": [0, 4, 4, 0]},
+             "barMaxWidth": 18,
+             "label": {"show": True, "position": "right", "color": "#3D4F66", "fontSize": 9,
+                       "formatter": lbl_cnt}},
+        ],
+        "tooltip": {"trigger": "axis", **_tt(), "formatter": JS(
+            "function(params){"
+            "var s=params[0].axisValue+'<br>';"
+            "params.forEach(function(p){"
+            "if(p.seriesName==='Revenue (฿)'){"
+            "s+=p.marker+'Revenue: ฿'+p.value.toLocaleString('th-TH',{maximumFractionDigits:0})+'<br>';}"
+            "else{s+=p.marker+'Count: '+p.value.toLocaleString()+'<br>';}"
+            "});return s;}"
+        )},
+    }, height)
+
+
 def area_line(series_list, height=300):
     """
     Multi-series area line.
