@@ -542,21 +542,10 @@ def tab_products():
 
     # ── Brand & SKU Type Breakdown ────────────────────────────────────────────
     section("BRAND & SKU TYPE BREAKDOWN")
-
-    all_bd_cats = sorted(c for c in combined["category"].unique() if c != "อื่นๆ")
-    bd_cats = st.multiselect(
-        "🔍 Filter Category  —  กรอง SKU Type ด้านล่าง",
-        all_bd_cats, default=all_bd_cats,
-        key="bd_cat",
-    )
-    # base = items with known category (for SKU breakdown)
-    # brand chart always uses ALL items so revenue matches Overview
-    base = combined[combined["category"].isin(bd_cats)] if bd_cats else combined
-
     col_brand, col_sku = st.columns(2)
 
     with col_brand:
-        chart_title("Brand — Revenue Share (ทุก item)")
+        chart_title("Brand — Revenue Share")
         br = (combined.groupby("brand")["item_price"]
               .agg(revenue="sum", count="count")
               .reset_index().sort_values("revenue", ascending=False))
@@ -568,17 +557,10 @@ def tab_products():
         )
 
     with col_sku:
-        all_bd_brands = sorted(b for b in base["brand"].unique() if b != "อื่นๆ")
-        bd_brands = st.multiselect(
-            "🔍 Filter Brand  —  กรองเฉพาะ SKU chart นี้",
-            all_bd_brands, default=all_bd_brands,
-            key="bd_brand",
-        )
-        sku_filt = base[base["brand"].isin(bd_brands)] if bd_brands else base
         chart_title("SKU Type — Revenue")
-        sk_known = sku_filt[sku_filt["sku_type"] != "อื่นๆ"]
+        sk_known = combined[combined["sku_type"] != "อื่นๆ"]
         if sk_known.empty:
-            st.info("ไม่มีข้อมูล — ลอง config SKU Types ใน Categories tab")
+            st.info("ไม่มีข้อมูล — config SKU Types ใน Categories tab")
         else:
             sk = (sk_known.groupby("sku_type")["item_price"]
                   .agg(revenue="sum", count="count")
@@ -591,9 +573,9 @@ def tab_products():
                 currency=True,
                 rotate=30,
             )
-        unc_sku = sku_filt[sku_filt["sku_type"] == "อื่นๆ"]
+        unc_sku = combined[combined["sku_type"] == "อื่นๆ"]
         if not unc_sku.empty:
-            unc_pct = len(unc_sku) / len(sku_filt) * 100 if len(sku_filt) else 0
+            unc_pct = len(unc_sku) / len(combined) * 100
             with st.expander(
                 f"🔍 ยังไม่ระบุ SKU Type — {len(unc_sku):,} items ({unc_pct:.0f}%) · คลิกเพื่อดูและเพิ่ม keyword",
                 expanded=False,
