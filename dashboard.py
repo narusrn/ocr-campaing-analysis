@@ -572,10 +572,11 @@ def tab_products():
         )
         sku_filt = base[base["brand"].isin(bd_brands)] if bd_brands else base
         chart_title("SKU Type — Revenue")
-        if sku_filt.empty:
-            st.info("ไม่มีข้อมูล")
+        sk_known = sku_filt[sku_filt["sku_type"] != "อื่นๆ"]
+        if sk_known.empty:
+            st.info("ไม่มีข้อมูล — ลอง config SKU Types ใน Categories tab")
         else:
-            sk = (sku_filt.groupby("sku_type")["item_price"]
+            sk = (sk_known.groupby("sku_type")["item_price"]
                   .agg(revenue="sum", count="count")
                   .reset_index().sort_values("revenue", ascending=False).head(15))
             ec.bar_v(
@@ -586,6 +587,22 @@ def tab_products():
                 currency=True,
                 rotate=30,
             )
+        unc_sku = sku_filt[sku_filt["sku_type"] == "อื่นๆ"]
+        if not unc_sku.empty:
+            unc_pct = len(unc_sku) / len(sku_filt) * 100 if len(sku_filt) else 0
+            with st.expander(
+                f"🔍 ยังไม่ระบุ SKU Type — {len(unc_sku):,} items ({unc_pct:.0f}%) · คลิกเพื่อดูและเพิ่ม keyword",
+                expanded=False,
+            ):
+                st.caption("item_name ที่พบบ่อยสุด — นำ keyword ไปเพิ่มใน Categories tab › SKU Types")
+                top_unk = (unc_sku.groupby(["category", "item_name"])["item_price"]
+                           .agg(count="count", revenue="sum")
+                           .reset_index().sort_values("count", ascending=False).head(40))
+                st.dataframe(
+                    top_unk.rename(columns={"category": "Category", "item_name": "Item Name",
+                                            "count": "Count", "revenue": "Revenue (฿)"}),
+                    use_container_width=True, hide_index=True,
+                )
 
     # ── Network / Heatmap toggle ──────────────────────────────────────────────
     section("PRODUCT NETWORK & CO-OCCURRENCE")
