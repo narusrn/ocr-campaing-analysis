@@ -564,7 +564,7 @@ def tab_products():
                 categories=br_agg["brand"].tolist(),
                 values=br_agg["val"].round(0).astype(int).tolist(),
                 color=PALETTE[0] if bd_metric == "Revenue" else PALETTE[2],
-                height=max(280, len(br_agg) * 36),
+                height=min(500, max(280, len(br_agg) * 36)),
                 currency=(bd_metric == "Revenue"),
             )
             st.caption(f"Brand by {bd_metric}" + (" (฿)" if bd_metric == "Revenue" else ""))
@@ -578,12 +578,13 @@ def tab_products():
                       .agg("sum" if bd_metric == "Revenue" else "count")
                       .reset_index()
                       .sort_values("item_price", ascending=True)
-                      .rename(columns={"item_price": "val"}))
+                      .rename(columns={"item_price": "val"})
+                      .tail(15))
             ec.bar_h(
                 categories=sk_agg["sku_type"].tolist(),
                 values=sk_agg["val"].round(0).astype(int).tolist(),
                 color=PALETTE[0] if bd_metric == "Revenue" else PALETTE[2],
-                height=max(280, len(sk_agg) * 36),
+                height=min(500, max(280, len(sk_agg) * 36)),
                 currency=(bd_metric == "Revenue"),
             )
             st.caption(f"SKU Type by {bd_metric}" + (" (฿)" if bd_metric == "Revenue" else "")
