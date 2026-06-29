@@ -470,7 +470,20 @@ def tab_overview():
 # Tab 2 — Products
 # ═════════════════════════════════════════════════════════════════════════════
 def tab_products():
-    combined = pd.concat([get_categorized(name, df) for name, df in filtered.items()])
+    _brands_db = load_brands_db()
+    def _campaign_brand(campaign: str) -> str:
+        low = campaign.lower()
+        for bname, kws in _brands_db.items():
+            if any(k.lower() in low for k in kws):
+                return bname
+        return campaign
+
+    cat_dfs = {}
+    for name, df in filtered.items():
+        cdf = get_categorized(name, df).copy()
+        cdf.loc[cdf["brand"] == "อื่นๆ", "brand"] = _campaign_brand(name)
+        cat_dfs[name] = cdf
+    combined = pd.concat(cat_dfs.values())
 
     # Guard: clear stale cache if brand/sku_type columns missing (old cached DFs)
     if "brand" not in combined.columns or "sku_type" not in combined.columns:
@@ -600,7 +613,7 @@ def tab_products():
     # Top combos
     section("TOP CATEGORY COMBINATIONS")
     combos = []
-    for df in [get_categorized(name, df) for name, df in filtered.items()]:
+    for df in cat_dfs.values():
         for _, grp in df.groupby("slip_id"):
             cats = sorted({c for c in grp["category"] if c != "อื่นๆ"})
             for i in range(len(cats)):
