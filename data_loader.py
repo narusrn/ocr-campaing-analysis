@@ -185,7 +185,6 @@ def load_data() -> dict[str, pd.DataFrame]:
         df["channel"] = df["store_chain"].apply(
             lambda c: "Online" if c in online_chains else "Offline"
         )
-        df["brand"]   = df["item_name"].fillna("").apply(classify_brand)
         df["campaign"] = display
         result[display] = df
     return result

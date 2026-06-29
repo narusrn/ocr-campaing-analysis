@@ -4,7 +4,7 @@ import pandas as pd
 import echarts_helper as ec
 from data_loader import (load_data, get_slip_df, compute_rfm, compute_basket_matrix,
                          load_stores_db, save_stores_db,
-                         DEFAULT_CHAIN_KEYWORDS, DEFAULT_ONLINE_CHAINS)
+                         DEFAULT_CHAIN_KEYWORDS, DEFAULT_ONLINE_CHAINS, classify_brand)
 from categorizer import (add_categories_to_df, preprocess_name,
                          load_categories_db, save_categories_db,
                          reset_cache, DEFAULT_CATEGORIES)
@@ -501,6 +501,8 @@ def tab_products():
 
     # ── Brand & SKU Breakdown ─────────────────────────────────────────────────
     section("BRAND & SKU BREAKDOWN")
+
+    combined["brand"] = combined["item_name"].fillna("").apply(classify_brand)
 
     c1, c2 = st.columns(2)
     with c1:
