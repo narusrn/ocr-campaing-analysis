@@ -533,7 +533,7 @@ def tab_products():
     with c2:
         cnt = combined["category"].value_counts().reset_index()
         cnt.columns = ["category", "count"]
-        ec.donut(cnt["category"].tolist(), cnt["count"].tolist(), height=320)
+        ec.donut(cnt["category"].tolist(), cnt["count"].tolist(), height=320, currency=False)
         st.caption("Item Distribution by Category")
 
     # ── Brand & SKU Type Breakdown ────────────────────────────────────────────
