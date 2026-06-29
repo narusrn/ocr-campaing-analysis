@@ -524,7 +524,7 @@ def tab_products():
     # ── Brand & SKU Type Breakdown ────────────────────────────────────────────
     section("BRAND & SKU TYPE BREAKDOWN")
 
-    ff1, ff2, ff3 = st.columns([2, 2, 1])
+    ff1, ff2 = st.columns(2)
     with ff1:
         bd_cats = st.multiselect(
             "Filter Category",
@@ -537,10 +537,7 @@ def tab_products():
             sorted(b for b in combined["brand"].unique() if b != "อื่นๆ"),
             key="bd_brand", placeholder="ทุก Brand",
         )
-    with ff3:
-        bd_metric = st.radio("Metric", ["Revenue", "Count"], horizontal=True, key="bd_metric")
 
-    # apply category filter to both charts; brand filter only to SKU chart
     cat_mask = pd.Series(True, index=combined.index)
     if bd_cats:
         cat_mask &= combined["category"].isin(bd_cats)
@@ -551,44 +548,54 @@ def tab_products():
     col_brand, col_sku = st.columns(2)
 
     with col_brand:
-        chart_title("Brand Breakdown")
+        chart_title("Brand — Revenue (฿)")
         if brand_filt.empty:
             st.info("ไม่มีข้อมูล")
         else:
-            br_agg = (brand_filt.groupby("brand")["item_price"]
-                      .agg("sum" if bd_metric == "Revenue" else "count")
-                      .reset_index()
-                      .sort_values("item_price", ascending=True)
-                      .rename(columns={"item_price": "val"}))
+            br_rev = (brand_filt.groupby("brand")["item_price"].sum()
+                      .reset_index().sort_values("item_price", ascending=True))
             ec.bar_h(
-                categories=br_agg["brand"].tolist(),
-                values=br_agg["val"].round(0).astype(int).tolist(),
-                color=PALETTE[0] if bd_metric == "Revenue" else PALETTE[2],
-                height=min(500, max(280, len(br_agg) * 36)),
-                currency=(bd_metric == "Revenue"),
+                categories=br_rev["brand"].tolist(),
+                values=br_rev["item_price"].round(0).astype(int).tolist(),
+                color=PALETTE[0],
+                height=min(400, max(200, len(br_rev) * 34)),
+                currency=True,
             )
-            st.caption(f"Brand by {bd_metric}" + (" (฿)" if bd_metric == "Revenue" else ""))
+            br_cnt = (brand_filt.groupby("brand")["item_price"].count()
+                      .reset_index().sort_values("item_price", ascending=True))
+            chart_title("Brand — Count")
+            ec.bar_h(
+                categories=br_cnt["brand"].tolist(),
+                values=br_cnt["item_price"].tolist(),
+                color=PALETTE[2],
+                height=min(400, max(200, len(br_cnt) * 34)),
+            )
 
     with col_sku:
-        chart_title("SKU Type Breakdown")
+        chart_title("SKU Type — Revenue (฿)")
         if sku_filt.empty:
             st.info("ไม่มีข้อมูล")
         else:
-            sk_agg = (sku_filt.groupby("sku_type")["item_price"]
-                      .agg("sum" if bd_metric == "Revenue" else "count")
-                      .reset_index()
-                      .sort_values("item_price", ascending=True)
-                      .rename(columns={"item_price": "val"})
-                      .tail(15))
+            sk_rev = (sku_filt.groupby("sku_type")["item_price"].sum()
+                      .reset_index().sort_values("item_price", ascending=True).tail(15))
             ec.bar_h(
-                categories=sk_agg["sku_type"].tolist(),
-                values=sk_agg["val"].round(0).astype(int).tolist(),
-                color=PALETTE[0] if bd_metric == "Revenue" else PALETTE[2],
-                height=min(500, max(280, len(sk_agg) * 36)),
-                currency=(bd_metric == "Revenue"),
+                categories=sk_rev["sku_type"].tolist(),
+                values=sk_rev["item_price"].round(0).astype(int).tolist(),
+                color=PALETTE[0],
+                height=min(400, max(200, len(sk_rev) * 34)),
+                currency=True,
             )
-            st.caption(f"SKU Type by {bd_metric}" + (" (฿)" if bd_metric == "Revenue" else "")
-                       + (f" · Brand: {', '.join(bd_brands)}" if bd_brands else ""))
+            sk_cnt = (sku_filt.groupby("sku_type")["item_price"].count()
+                      .reset_index().sort_values("item_price", ascending=True).tail(15))
+            chart_title("SKU Type — Count")
+            ec.bar_h(
+                categories=sk_cnt["sku_type"].tolist(),
+                values=sk_cnt["item_price"].tolist(),
+                color=PALETTE[2],
+                height=min(400, max(200, len(sk_cnt) * 34)),
+            )
+            if bd_brands:
+                st.caption(f"Brand filter: {', '.join(bd_brands)}")
 
     # ── Network / Heatmap toggle ──────────────────────────────────────────────
     section("PRODUCT NETWORK & CO-OCCURRENCE")
