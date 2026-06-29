@@ -175,16 +175,19 @@ def area_line(series_list, height=300):
     }, height)
 
 
-def donut(labels, values, colors=None, height=320):
-    """Donut / pie chart."""
+def donut(labels, values, colors=None, height=320, show_count=False):
+    """Donut / pie chart. show_count=True adds raw count + % to each slice label."""
     pal = (colors or PALETTE) * 4
+    label_cfg = {"color": "#182B45", "fontSize": 11}
+    if show_count:
+        label_cfg["formatter"] = "{b}\n{c} ({d}%)"
     render({
         "backgroundColor": "#ffffff", "textStyle": {"color": "#3D4F66"},
         "series": [{"type": "pie", "radius": ["42%", "68%"], "center": ["42%", "50%"],
                     "data": [{"name": str(l), "value": float(v),
                               "itemStyle": {"color": pal[i]}}
                              for i, (l, v) in enumerate(zip(labels, values))],
-                    "label": {"color": "#182B45", "fontSize": 11},
+                    "label": label_cfg,
                     "labelLine": {"lineStyle": {"color": "#7a9dc0"}},
                     "itemStyle": {"borderColor": "#E8EFF9", "borderWidth": 2}}],
         "legend": {"orient": "vertical", "right": "4%", "top": "center",

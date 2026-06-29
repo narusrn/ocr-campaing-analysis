@@ -607,6 +607,40 @@ def tab_customers():
     )
 
     section("SEGMENT DISTRIBUTION & RFM MAP")
+
+    SEG_DEFS = {
+        "Champions":       ("#00C896", "R4-5 · F4-5", "ซื้อล่าสุด + บ่อยมาก — กลุ่ม VIP ที่ดีที่สุด"),
+        "Loyal Customers": ("#0064F0", "F3-5 · M3-5", "ซื้อบ่อยและใช้เงินสูง — รักษาความสัมพันธ์ไว้"),
+        "Potential":       ("#F0C800", "R3-5 · F1-2", "ซื้อล่าสุดแต่ยังไม่บ่อย — โอกาส convert เป็น Loyal"),
+        "At Risk":         ("#FB654E", "R1-2 · F3-5", "เคยซื้อบ่อยแต่หายไปนาน — ต้องรีบดึงกลับ"),
+        "Lost":            ("#A3AAB5", "R1 · F1",     "ซื้อน้อยและนานมากแล้ว — ยาก win back"),
+        "Others":          ("#7C8DA0", "—",            "ไม่เข้าเงื่อนไขกลุ่มใด"),
+    }
+    with st.expander("📖 Segment Definitions", expanded=False):
+        rows = "".join(
+            f'<tr>'
+            f'<td style="padding:6px 10px;white-space:nowrap">'
+            f'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;'
+            f'background:{color};margin-right:6px;vertical-align:middle"></span>'
+            f'<strong style="color:#182B45">{seg}</strong></td>'
+            f'<td style="padding:6px 10px;color:#3362B0;font-size:12px;white-space:nowrap">{criteria}</td>'
+            f'<td style="padding:6px 10px;color:#3D4F66;font-size:12px">{desc}</td>'
+            f'</tr>'
+            for seg, (color, criteria, desc) in SEG_DEFS.items()
+        )
+        st.markdown(
+            f'<table style="border-collapse:collapse;width:100%;font-family:Sarabun,sans-serif">'
+            f'<thead><tr style="border-bottom:2px solid #BDD0F0">'
+            f'<th style="padding:6px 10px;text-align:left;color:#3362B0;font-size:11px;'
+            f'text-transform:uppercase;letter-spacing:1px">Segment</th>'
+            f'<th style="padding:6px 10px;text-align:left;color:#3362B0;font-size:11px;'
+            f'text-transform:uppercase;letter-spacing:1px">R · F · M Score</th>'
+            f'<th style="padding:6px 10px;text-align:left;color:#3362B0;font-size:11px;'
+            f'text-transform:uppercase;letter-spacing:1px">ความหมาย</th>'
+            f'</tr></thead><tbody>{rows}</tbody></table>',
+            unsafe_allow_html=True,
+        )
+
     c1, c2 = st.columns([1, 2])
 
     with c1:
@@ -617,6 +651,7 @@ def tab_customers():
             values=seg_df["count"].tolist(),
             colors=[SEGMENT_COLORS.get(s, "#8b9dc3") for s in seg_df["segment"]],
             height=340,
+            show_count=True,
         )
 
     with c2:
