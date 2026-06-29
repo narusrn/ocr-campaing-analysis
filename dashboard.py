@@ -486,6 +486,11 @@ def tab_products():
     cat_dfs = {name: get_categorized(name, df) for name, df in filtered.items()}
     combined = pd.concat(cat_dfs.values())
 
+    # Guard: clear stale cache if brand/sku_type columns missing (old cached DFs)
+    if "brand" not in combined.columns or "sku_type" not in combined.columns:
+        get_categorized.clear()
+        st.rerun()
+
     # ── AI Insights ───────────────────────────────────────────────────────────
     section("AI PRODUCT INSIGHTS")
     import json as _json
