@@ -72,6 +72,8 @@ RFM_SEGMENTS = [
     ("Potential",       (3, 5), (1, 2), None  ),
     ("At Risk",         (1, 2), (3, 5), None  ),
     ("Lost",            (1, 1), (1, 1), None  ),
+    ("Promising",       (3, 5), (3, 5), None  ),  # active+frequent but low spend (Loyal already took M3-5)
+    ("Hibernating",     (1, 2), (1, 2), None  ),  # infrequent + long ago (Lost already took R1,F1)
 ]
 
 

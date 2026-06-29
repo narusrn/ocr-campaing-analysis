@@ -9,9 +9,10 @@ SEGMENT_COLORS = {
     "Champions":       "#00C896",
     "Loyal Customers": "#0064F0",
     "Potential":       "#F0C800",
+    "Promising":       "#00A3E0",
     "At Risk":         "#FB654E",
+    "Hibernating":     "#D19E36",
     "Lost":            "#A3AAB5",
-    "Others":          "#7C8DA0",
 }
 
 _CDN = "https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"
