@@ -95,6 +95,11 @@ Online: {ctx['online_pct']}% | Offline: {ctx['offline_pct']}%
 ตอบกระชับ ไม่เกิน 280 คำ"""
 
 
+def _strip_fence(text: str) -> str:
+    import re
+    return re.sub(r'^```[a-z]*\n?', '', text.strip()).rstrip('`').strip()
+
+
 def _get_api_key() -> str:
     try:
         import streamlit as st
@@ -227,7 +232,7 @@ def generate_products_summary(ctx: dict) -> str:
             max_tokens=1024,
             messages=[{"role": "user", "content": _build_products_prompt(ctx)}],
         )
-        return resp.choices[0].message.content
+        return _strip_fence(resp.choices[0].message.content)
     except Exception as exc:  # noqa: BLE001
         return f"❌ Error: {exc}"
 
@@ -309,7 +314,7 @@ def generate_rfm_summary(ctx: dict) -> str:
             max_tokens=1024,
             messages=[{"role": "user", "content": _build_rfm_prompt(ctx)}],
         )
-        return resp.choices[0].message.content
+        return _strip_fence(resp.choices[0].message.content)
     except Exception as exc:  # noqa: BLE001
         return f"❌ Error: {exc}"
 
@@ -329,6 +334,6 @@ def generate_summary(ctx: dict) -> str:
             max_tokens=1024,
             messages=[{"role": "user", "content": _build_prompt(ctx)}],
         )
-        return resp.choices[0].message.content
+        return _strip_fence(resp.choices[0].message.content)
     except Exception as exc:  # noqa: BLE001
         return f"❌ Error: {exc}"
