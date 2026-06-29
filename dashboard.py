@@ -342,7 +342,8 @@ filtered = {c: filter_df(all_data[c]) for c in selected}
 # Tab 1 — Overview  (Performance + Time & Location)
 # ═════════════════════════════════════════════════════════════════════════════
 def tab_overview():
-    all_slip = pd.concat([get_slip_df(d) for d in filtered.values()])
+    all_slip  = pd.concat([get_slip_df(d) for d in filtered.values()])
+    all_items = pd.concat(filtered.values())  # item-level for revenue (item_verify==1 only)
 
     # ── AI Insights (auto-generate, cached per filter state) ─────────────────
     section("AI CAMPAIGN INSIGHTS")
@@ -361,10 +362,10 @@ def tab_overview():
     for col, label, val, color in zip(c, [
         "Total Revenue", "Total Orders", "Unique Members", "Avg Basket", "Campaigns"
     ], [
-        f"฿{all_slip['slip_total'].sum():,.0f}",
+        f"฿{all_items['item_price'].sum():,.0f}",
         f"{all_slip['slip_id'].nunique():,}",
         f"{all_slip['member'].nunique():,}",
-        f"฿{all_slip['slip_total'].mean():,.0f}",
+        f"฿{all_items.groupby('slip_id')['item_price'].sum().mean():,.0f}",
         str(len(filtered)),
     ], PALETTE):
         with col:
@@ -374,12 +375,11 @@ def tab_overview():
     section("DAILY REVENUE TREND")
     series_list = []
     for i, (name, df) in enumerate(filtered.items()):
-        s = get_slip_df(df)
-        d = s.groupby("date")["slip_total"].sum().reset_index().sort_values("date")
+        d = df.groupby("date")["item_price"].sum().reset_index().sort_values("date")
         series_list.append({
             "name": name,
             "dates": [str(r) for r in d["date"]],
-            "values": d["slip_total"].tolist(),
+            "values": d["item_price"].tolist(),
             "color": PALETTE[i % len(PALETTE)],
         })
     ec.area_line(series_list, height=300)
@@ -388,10 +388,10 @@ def tab_overview():
     section("CAMPAIGN COMPARISON")
     summary = [{
         "Campaign": name,
-        "Revenue":    float(get_slip_df(df)["slip_total"].sum()),
-        "Orders":     int(get_slip_df(df)["slip_id"].nunique()),
-        "Members":    int(get_slip_df(df)["member"].nunique()),
-        "Avg Basket": float(get_slip_df(df)["slip_total"].mean()),
+        "Revenue":    float(df["item_price"].sum()),
+        "Orders":     int(df["slip_id"].nunique()),
+        "Members":    int(df["member"].nunique()),
+        "Avg Basket": float(df.groupby("slip_id")["item_price"].sum().mean()),
     } for name, df in filtered.items()]
     sdf = pd.DataFrame(summary)
     cats = sdf["Campaign"].str.split(" x ").str[0].tolist()
@@ -445,31 +445,32 @@ def tab_overview():
     c3, c4 = st.columns([1, 2])
 
     with c3:
-        chan = all_slip.groupby("channel")["slip_total"].sum().reset_index()
+        chan = all_items.groupby("channel")["item_price"].sum().reset_index()
         ec.donut(labels=chan["channel"].tolist(),
-                 values=chan["slip_total"].round(0).astype(int).tolist(),
+                 values=chan["item_price"].round(0).astype(int).tolist(),
                  colors=[PALETTE[0], PALETTE[2]], height=280)
         st.caption("Revenue: Online vs Offline")
 
     with c4:
-        chain = (all_slip.groupby("store_chain")["slip_total"].sum()
-                         .reset_index().sort_values("slip_total"))
+        chain = (all_items.groupby("store_chain")["item_price"].sum()
+                          .reset_index().sort_values("item_price"))
         ec.bar_h(categories=chain["store_chain"].tolist(),
-                 values=chain["slip_total"].round(0).astype(int).tolist(),
+                 values=chain["item_price"].round(0).astype(int).tolist(),
                  color=PALETTE[1], height=280, currency=True)
         st.caption("Revenue by Store Chain (฿)")
 
     # Review unmatched merchant names
-    other_rows = all_slip[all_slip["store_chain"] == "Other"]
+    other_rows = all_items[all_items["store_chain"] == "Other"]
+    other_slips = all_slip[all_slip["store_chain"] == "Other"]
     if not other_rows.empty:
-        other_pct = len(other_rows) / len(all_slip) * 100
+        other_pct = len(other_slips) / len(all_slip) * 100
         with st.expander(
-            f"🔍 Other Stores — {len(other_rows):,} slips ({other_pct:.1f}%) ยังไม่ถูก match",
+            f"🔍 Other Stores — {len(other_slips):,} slips ({other_pct:.1f}%) ยังไม่ถูก match",
             expanded=False,
         ):
             tbl = (
-                other_rows.groupby("merchantname")["slip_total"]
-                .agg(slips="count", revenue="sum")
+                other_rows.groupby("merchantname")
+                .agg(slips=("slip_id", "nunique"), revenue=("item_price", "sum"))
                 .reset_index()
                 .sort_values("slips", ascending=False)
                 .rename(columns={"merchantname": "Merchant Name",
