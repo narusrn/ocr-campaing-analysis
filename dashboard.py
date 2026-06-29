@@ -555,11 +555,13 @@ def tab_products():
             br = (brand_filt.groupby("brand")["item_price"]
                   .agg(revenue="sum", count="count")
                   .reset_index().sort_values("revenue", ascending=True))
-            ec.bar_h_dual(
+            ec.bar_h(
                 categories=br["brand"].tolist(),
-                revenues=br["revenue"].round(0).astype(int).tolist(),
+                values=br["revenue"].round(0).astype(int).tolist(),
                 counts=br["count"].tolist(),
+                color=PALETTE[0],
                 height=min(480, max(260, len(br) * 40)),
+                currency=True,
             )
 
     with col_sku:
@@ -570,11 +572,13 @@ def tab_products():
             sk = (sku_filt.groupby("sku_type")["item_price"]
                   .agg(revenue="sum", count="count")
                   .reset_index().sort_values("revenue", ascending=True).tail(15))
-            ec.bar_h_dual(
+            ec.bar_h(
                 categories=sk["sku_type"].tolist(),
-                revenues=sk["revenue"].round(0).astype(int).tolist(),
+                values=sk["revenue"].round(0).astype(int).tolist(),
                 counts=sk["count"].tolist(),
+                color=PALETTE[0],
                 height=min(480, max(260, len(sk) * 40)),
+                currency=True,
             )
             if bd_brands:
                 st.caption(f"Brand filter: {', '.join(bd_brands)}")

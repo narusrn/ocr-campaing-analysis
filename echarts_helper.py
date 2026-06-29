@@ -109,8 +109,8 @@ def bar_v(categories, values, color=None, height=280, currency=False):
     }, height)
 
 
-def bar_h(categories, values, color=None, height=300, currency=False):
-    """Horizontal bar chart."""
+def bar_h(categories, values, color=None, height=300, currency=False, counts=None):
+    """Horizontal bar chart. counts: optional list shown in tooltip alongside values."""
     color = color or PALETTE[0]
     if currency:
         lbl = JS("function(p){if(p.value>=1e6)return'฿'+(p.value/1e6).toFixed(1)+'M';"
@@ -119,6 +119,21 @@ def bar_h(categories, values, color=None, height=300, currency=False):
     else:
         lbl = JS("function(p){return p.value>=1e6?(p.value/1e6).toFixed(1)+'M':"
                  "p.value>=1e3?(p.value/1e3).toFixed(0)+'K':p.value.toLocaleString()}")
+
+    if counts is not None:
+        data = [{"value": float(v), "count": int(c)} for v, c in zip(values, counts)]
+        tooltip = {"trigger": "axis", **_tt(), "formatter": JS(
+            "function(params){"
+            "var d=params[0];"
+            "var rev=d.data.value>=1e6?'฿'+(d.data.value/1e6).toFixed(1)+'M':"
+            "d.data.value>=1e3?'฿'+(d.data.value/1e3).toFixed(0)+'K':"
+            "'฿'+d.data.value.toLocaleString();"
+            "return d.marker+d.name+'<br>Revenue: <b>'+rev+'</b><br>Count: <b>'+d.data.count.toLocaleString()+'</b>';}"
+        )}
+    else:
+        data = [float(v) for v in values]
+        tooltip = {"trigger": "axis", **_tt()}
+
     render({
         "backgroundColor": "#ffffff", "textStyle": {"color": "#3D4F66"},
         "grid": {"containLabel": True, "top": 8, "bottom": 8, "left": 8, "right": 80},
@@ -126,12 +141,12 @@ def bar_h(categories, values, color=None, height=300, currency=False):
         "yAxis": {"type": "category", "data": [str(c) for c in categories],
                   "axisLine": {"lineStyle": {"color": "#BDD0F0"}}, "axisTick": {"show": False},
                   "axisLabel": {"color": "#182B45", "fontSize": 10}},
-        "series": [{"type": "bar", "data": [float(v) for v in values],
+        "series": [{"type": "bar", "data": data,
                     "itemStyle": {"color": color, "borderRadius": [0, 4, 4, 0]},
                     "barMaxWidth": 28,
                     "label": {"show": True, "position": "right",
                               "color": "#3D4F66", "fontSize": 9, "formatter": lbl}}],
-        "tooltip": {"trigger": "axis", **_tt()},
+        "tooltip": tooltip,
     }, height)
 
 
