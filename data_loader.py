@@ -146,7 +146,11 @@ def load_data() -> dict[str, pd.DataFrame]:
         df["item_price"]      = pd.to_numeric(df["item_price"],  errors="coerce")
         df["item_amount"]     = pd.to_numeric(df["item_amount"], errors="coerce")
 
-        df = df[(df["slip_status"] == "approve") & (df["item_verify"] == 1)].copy()
+        df = df[
+            (df["slip_status"] == "approve") &
+            (df["item_verify"] == 1) &
+            (df["item_price"] > 0)
+        ].copy()
 
         df["date"]        = df["slip_created_at"].dt.date
         df["hour"]        = df["slip_created_at"].dt.hour
