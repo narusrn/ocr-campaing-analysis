@@ -499,6 +499,52 @@ def tab_products():
         ec.donut(cnt["category"].tolist(), cnt["count"].tolist(), height=320)
         st.caption("Item Distribution by Category")
 
+    # ── Brand & SKU Breakdown ─────────────────────────────────────────────────
+    section("BRAND & SKU BREAKDOWN")
+
+    c1, c2 = st.columns(2)
+    with c1:
+        chart_title("Revenue by Brand (฿)")
+        brand_rev = (combined.groupby("brand")["item_price"].sum()
+                     .reset_index().sort_values("item_price"))
+        ec.bar_h(categories=brand_rev["brand"].tolist(),
+                 values=brand_rev["item_price"].round(0).astype(int).tolist(),
+                 color=PALETTE[0], height=320, currency=True)
+
+    with c2:
+        chart_title("Item Count by Brand")
+        brand_cnt = (combined.groupby("brand")["item_price"].count()
+                     .reset_index().rename(columns={"item_price": "count"})
+                     .sort_values("count"))
+        ec.bar_h(categories=brand_cnt["brand"].tolist(),
+                 values=brand_cnt["count"].tolist(),
+                 color=PALETTE[2], height=320)
+
+    col_n, col_m, _ = st.columns([1, 1, 3])
+    with col_n:
+        top_n_sku = st.slider("Top N SKUs", 10, 50, 20, 5, key="sku_n")
+    with col_m:
+        sku_metric = st.radio("Sort by", ["Count", "Revenue (฿)"], horizontal=True, key="sku_metric")
+
+    sku_df = (
+        combined
+        .assign(sku=lambda d: d["item_name"].fillna("").apply(preprocess_name).str[:45])
+        .groupby("sku")
+        .agg(count=("item_price", "count"), revenue=("item_price", "sum"))
+        .reset_index()
+    )
+    if sku_metric == "Revenue (฿)":
+        sku_top = sku_df.sort_values("revenue", ascending=True).tail(top_n_sku)
+        ec.bar_h(categories=sku_top["sku"].tolist(),
+                 values=sku_top["revenue"].round(0).astype(int).tolist(),
+                 color=PALETTE[0], height=max(300, top_n_sku * 30), currency=True)
+    else:
+        sku_top = sku_df.sort_values("count", ascending=True).tail(top_n_sku)
+        ec.bar_h(categories=sku_top["sku"].tolist(),
+                 values=sku_top["count"].tolist(),
+                 color=PALETTE[2], height=max(300, top_n_sku * 30))
+    st.caption(f"Top {top_n_sku} SKUs by {sku_metric} · ชื่อ cleaned จาก OCR")
+
     # ── Network / Heatmap toggle ──────────────────────────────────────────────
     section("PRODUCT NETWORK & CO-OCCURRENCE")
     render_legend()

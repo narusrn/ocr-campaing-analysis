@@ -36,6 +36,34 @@ DEFAULT_CHAIN_KEYWORDS: dict[str, list[str]] = {
 }
 DEFAULT_ONLINE_CHAINS: set[str] = {"Shopee", "Lazada", "TikTok", "Line Shop"}
 
+BRAND_KEYWORDS: dict[str, list[str]] = {
+    "Pond's":   ["พอนด์", "ponds", "pond"],
+    "Breeze":   ["เบรซ", "breeze"],
+    "Sunlight": ["ซันไลท์", "sunlight"],
+    "Dove":     ["โดฟ", "dove"],
+    "Lux":      ["ลักซ์", "lux"],
+    "Vaseline": ["วาสลีน", "vaseline"],
+    "Clear":    ["เคลียร์", "clear"],
+    "AXE":      ["แอ็กซ์", "axe"],
+    "Comfort":  ["คอมฟอร์ท", "comfort"],
+    "Rexona":   ["รีโซน่า", "rexona"],
+    "Lipton":   ["ลิปตัน", "lipton"],
+    "Knorr":    ["คนอร์", "knorr"],
+}
+
+_THAI_SPACE_RE = re.compile(r'(?<=[฀-๿])\s+(?=[฀-๿])')
+
+
+def classify_brand(name: str) -> str:
+    if not isinstance(name, str):
+        return "อื่นๆ"
+    cleaned = _THAI_SPACE_RE.sub('', name).lower()
+    for brand, keywords in BRAND_KEYWORDS.items():
+        if any(k in cleaned for k in keywords):
+            return brand
+    return "อื่นๆ"
+
+
 STORE_THRESHOLD = 0.1
 
 _store_model    = None
@@ -157,6 +185,7 @@ def load_data() -> dict[str, pd.DataFrame]:
         df["channel"] = df["store_chain"].apply(
             lambda c: "Online" if c in online_chains else "Offline"
         )
+        df["brand"]   = df["item_name"].fillna("").apply(classify_brand)
         df["campaign"] = display
         result[display] = df
     return result
