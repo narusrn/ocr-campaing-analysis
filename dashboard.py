@@ -7,7 +7,8 @@ from data_loader import (load_data, get_slip_df, compute_rfm, compute_basket_mat
                          DEFAULT_CHAIN_KEYWORDS, DEFAULT_ONLINE_CHAINS)
 from categorizer import (add_categories_to_df, preprocess_name,
                          load_categories_db, save_categories_db,
-                         reset_cache, DEFAULT_CATEGORIES)
+                         load_brands_db, save_brands_db,
+                         reset_cache, DEFAULT_CATEGORIES, DEFAULT_BRANDS)
 from network_viz import render_item_network, render_legend, CAT_COLORS
 from llm_summary import (build_context, generate_summary,
                           build_products_context, generate_products_summary,
@@ -791,11 +792,12 @@ def tab_categories():
             kws = [k.strip() for k in raw_kw.splitlines() if k.strip()]
             if not kws:
                 continue
-            raw_br = st.session_state.get(f"ta_br_{gen}_{cat}", _kv_block_to_str(cd.get("brands", {})))
-            raw_sk = st.session_state.get(f"ta_sk_{gen}_{cat}", _kv_block_to_str(cd.get("sku_types", {})))
+            cd       = cats[cat] if isinstance(cats[cat], dict) else {}
+            raw_br   = st.session_state.get(f"ta_br_{gen}_{cat}", "\n".join(cd.get("brands", [])))
+            raw_sk   = st.session_state.get(f"ta_sk_{gen}_{cat}", _kv_block_to_str(cd.get("sku_types", {})))
             new_cats[cat] = {
                 "keywords":  kws,
-                "brands":    _parse_kv_block(raw_br),
+                "brands":    [b.strip() for b in raw_br.splitlines() if b.strip()],
                 "sku_types": _parse_kv_block(raw_sk),
             }
         save_categories_db(new_cats)
@@ -820,14 +822,14 @@ def tab_categories():
 
     # ── Existing categories ───────────────────────────────────────────────────
     for cat in list(cats.keys()):
-        cd = cats[cat] if isinstance(cats[cat], dict) else {"keywords": cats[cat], "brands": {}, "sku_types": {}}
-        kws_list    = cd.get("keywords", [])
-        brands_dict = cd.get("brands", {})
-        sku_dict    = cd.get("sku_types", {})
+        cd = cats[cat] if isinstance(cats[cat], dict) else {"keywords": cats[cat], "brands": [], "sku_types": {}}
+        kws_list   = cd.get("keywords", [])
+        brands_list = cd.get("brands", [])
+        sku_dict   = cd.get("sku_types", {})
         color = CAT_COLORS.get(cat, "#8b9dc3")
         dot   = (f'<span style="display:inline-block;width:10px;height:10px;'
                  f'border-radius:50%;background:{color};margin-right:6px"></span>')
-        label = f"{cat}  —  {len(kws_list)} keywords · {len(brands_dict)} brands · {len(sku_dict)} SKU types"
+        label = f"{cat}  —  {len(kws_list)} keywords · {len(brands_list)} brands · {len(sku_dict)} SKU types"
 
         with st.expander(label, expanded=False):
             st.markdown(dot + f"**{cat}**", unsafe_allow_html=True)
@@ -842,12 +844,12 @@ def tab_categories():
                     help="ML classification keywords — one per line",
                 )
                 st.text_area(
-                    "Brands  (Name = kw1|kw2|kw3)",
-                    value=_kv_block_to_str(brands_dict),
-                    height=max(80, min(200, len(brands_dict) * 24 + 40)),
+                    "Brands ที่อยู่ใน category นี้  (ชื่อ brand ต่อบรรทัด)",
+                    value="\n".join(brands_list),
+                    height=max(80, min(180, len(brands_list) * 24 + 40)),
                     key=f"ta_br_{gen}_{cat}",
-                    placeholder="Dove = โดฟ|dove\nPond's = พอนด์ส|ponds|pond",
-                    help="Brand name = keywords separated by | — case-insensitive substring match on item_name",
+                    placeholder="Dove\nPond's\nVaseline",
+                    help="ใส่ชื่อ brand ที่ต้องการให้อยู่ใน category นี้ (keywords ของแต่ละ brand แก้ได้ที่ส่วน Brand Keywords ด้านล่าง)",
                 )
                 st.text_area(
                     "SKU Types  (Name = kw1|kw2|kw3)",
@@ -880,7 +882,7 @@ def tab_categories():
             name = new_name.strip()
             kws  = [k.strip() for k in new_kws.splitlines() if k.strip()]
             if name and kws:
-                st.session_state.cats_working[name] = {"keywords": kws, "brands": {}, "sku_types": {}}
+                st.session_state.cats_working[name] = {"keywords": kws, "brands": [], "sku_types": {}}
                 for k in ("new_cat_name", "new_cat_kws"):
                     st.session_state.pop(k, None)
                 st.rerun()
@@ -1007,6 +1009,91 @@ def tab_categories():
             else:
                 st.warning("Fill in both chain name and at least one keyword.")
 
+    # ══════════════════════════════════════════════════════════════════════════
+    # Brand Keywords (Global)
+    # ══════════════════════════════════════════════════════════════════════════
+    st.divider()
+
+    if "brands_working" not in st.session_state:
+        st.session_state.brands_working = load_brands_db()
+    if "brands_gen" not in st.session_state:
+        st.session_state.brands_gen = 0
+
+    brands = st.session_state.brands_working
+    bgen   = st.session_state.brands_gen
+
+    section("BRAND KEYWORDS (GLOBAL)")
+    col_info, col_save, col_reset = st.columns([3, 1, 1])
+    with col_info:
+        st.caption(
+            f"{len(brands)} brands · "
+            f"{sum(len(v) for v in brands.values())} keywords รวม · "
+            "config ครั้งเดียว ใช้ได้ทุก category ที่อ้างถึง brand นี้"
+        )
+    with col_save:
+        b_save = st.button("💾 Save & Apply", type="primary", key="brand_save", use_container_width=True)
+    with col_reset:
+        b_reset = st.button("↺ Defaults", key="brand_reset", use_container_width=True)
+
+    if b_save:
+        new_brands: dict = {}
+        for bname in list(brands.keys()):
+            raw = st.session_state.get(f"bta_{bgen}_{bname}", "\n".join(brands[bname]))
+            kws = [k.strip() for k in raw.splitlines() if k.strip()]
+            if kws:
+                new_brands[bname] = kws
+        save_brands_db(new_brands)
+        get_categorized.clear()
+        st.session_state.brands_working = new_brands
+        st.session_state.brands_gen = bgen + 1
+        st.success(f"Saved {len(new_brands)} brands — จะมีผลทันทีใน Products tab")
+        st.rerun()
+
+    if b_reset:
+        save_brands_db(dict(DEFAULT_BRANDS))
+        get_categorized.clear()
+        st.session_state.brands_working = dict(DEFAULT_BRANDS)
+        st.session_state.brands_gen = bgen + 1
+        st.rerun()
+
+    for bname in list(brands.keys()):
+        with st.expander(f"**{bname}**  —  {len(brands[bname])} keywords", expanded=False):
+            col_ta, col_del = st.columns([5, 1])
+            with col_ta:
+                st.text_area(
+                    "keywords", value="\n".join(brands[bname]),
+                    height=max(80, min(200, len(brands[bname]) * 22)),
+                    key=f"bta_{bgen}_{bname}", label_visibility="collapsed",
+                    placeholder="one keyword per line…",
+                    help="Case-insensitive substring match บน item_name",
+                )
+            with col_del:
+                st.markdown("<br>" * 3, unsafe_allow_html=True)
+                if st.button("🗑️", key=f"bdel_{bgen}_{bname}", use_container_width=True,
+                             help=f"Delete '{bname}'"):
+                    del st.session_state.brands_working[bname]
+                    st.rerun()
+
+    st.divider()
+    section("ADD NEW BRAND")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col1:
+        new_bname = st.text_input("Brand name", key="new_brand_name", placeholder="e.g. Knorr")
+    with col2:
+        new_bkws = st.text_area("Keywords (one per line)", key="new_brand_kws",
+                                height=80, placeholder="คนอร์\nknorr")
+    with col3:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        if st.button("➕ Add Brand", key="add_brand_btn", use_container_width=True):
+            bn  = new_bname.strip()
+            kws = [k.strip() for k in new_bkws.splitlines() if k.strip()]
+            if bn and kws:
+                st.session_state.brands_working[bn] = kws
+                for k in ("new_brand_name", "new_brand_kws"):
+                    st.session_state.pop(k, None)
+                st.rerun()
+            else:
+                st.warning("Fill in both brand name and at least one keyword.")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
