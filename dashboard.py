@@ -538,16 +538,14 @@ def tab_products():
     # ── Brand & SKU Type Breakdown ────────────────────────────────────────────
     section("BRAND & SKU TYPE BREAKDOWN")
 
+    all_bd_cats = sorted(c for c in combined["category"].unique() if c != "อื่นๆ")
     bd_cats = st.multiselect(
         "🔍 Filter Category  —  กรองทั้ง Brand และ SKU Type ด้านล่าง",
-        sorted(c for c in combined["category"].unique() if c != "อื่นๆ"),
-        key="bd_cat", placeholder="ทุก Category",
+        all_bd_cats, default=all_bd_cats,
+        key="bd_cat",
     )
 
-    cat_mask = pd.Series(True, index=combined.index)
-    if bd_cats:
-        cat_mask &= combined["category"].isin(bd_cats)
-    base = combined[cat_mask]
+    base = combined[combined["category"].isin(bd_cats)] if bd_cats else combined
 
     col_brand, col_sku = st.columns(2)
 
@@ -567,10 +565,11 @@ def tab_products():
             )
 
     with col_sku:
+        all_bd_brands = sorted(b for b in base["brand"].unique() if b != "อื่นๆ")
         bd_brands = st.multiselect(
             "🔍 Filter Brand  —  กรองเฉพาะ SKU chart นี้",
-            sorted(b for b in base["brand"].unique() if b != "อื่นๆ"),
-            key="bd_brand", placeholder="ทุก Brand",
+            all_bd_brands, default=all_bd_brands,
+            key="bd_brand",
         )
         sku_filt = base[base["brand"].isin(bd_brands)] if bd_brands else base
         chart_title("SKU Type — Revenue")
