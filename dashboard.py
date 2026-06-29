@@ -484,7 +484,12 @@ def tab_overview():
 # Tab 2 — Products
 # ═════════════════════════════════════════════════════════════════════════════
 def tab_products():
-    cat_dfs = {name: get_categorized(name, df) for name, df in filtered.items()}
+    cat_dfs = {}
+    for name, df in filtered.items():
+        cdf = get_categorized(name, df).copy()
+        # ponytail: fallback brand to campaign name when ML found no match
+        cdf.loc[cdf["brand"] == "อื่นๆ", "brand"] = name
+        cat_dfs[name] = cdf
     combined = pd.concat(cat_dfs.values())
 
     # Guard: clear stale cache if brand/sku_type columns missing (old cached DFs)
