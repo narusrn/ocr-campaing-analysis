@@ -245,19 +245,22 @@ def area_line(series_list, height=300):
     }, height)
 
 
-def donut(labels, values, colors=None, height=320, show_count=False):
-    """Donut / pie chart. show_count=True adds raw count + % to each slice label."""
+def donut(labels, values, colors=None, height=320, show_count=False, currency=True):
+    """Donut / pie chart. show_count=True adds value+% to labels. currency=False for count data."""
     pal = (colors or PALETTE) * 4
+    if currency:
+        _fmt_val = ("v>=1e6?'฿'+(v/1e6).toFixed(1)+'M'"
+                    ":v>=1e3?'฿'+(v/1e3).toFixed(0)+'K':'฿'+v")
+    else:
+        _fmt_val = "v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v"
     _tt_fmt = JS(
-        "function(p){var v=p.value,s=v>=1e6?'฿'+(v/1e6).toFixed(1)+'M'"
-        ":v>=1e3?'฿'+(v/1e3).toFixed(0)+'K':'฿'+v;"
+        f"function(p){{var v=p.value,s={_fmt_val};"
         "return p.name+': '+s+' ('+p.percent.toFixed(0)+'%)'}"
     )
     label_cfg = {"color": "#182B45", "fontSize": 11}
     if show_count:
         label_cfg["formatter"] = JS(
-            "function(p){var v=p.value,s=v>=1e6?'฿'+(v/1e6).toFixed(1)+'M'"
-            ":v>=1e3?'฿'+(v/1e3).toFixed(0)+'K':'฿'+v;"
+            f"function(p){{var v=p.value,s={_fmt_val};"
             "return p.name+' '+s}"
         )
     render({

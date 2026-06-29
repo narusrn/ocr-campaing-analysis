@@ -722,7 +722,7 @@ def tab_customers():
         "Hibernating":     ("#D19E36", "R1-2 · F1-2",        "ไม่ค่อยซื้อและนานมากแล้ว — อาจต้องการแรงจูงใจ"),
         "Lost":            ("#A3AAB5", "R1 · F1",            "ซื้อน้อยและนานมากแล้ว — ยาก win back"),
     }
-    with st.expander("📖 Segment Definitions", expanded=False):
+    with st.expander("📖 Segment Definitions", expanded=True):
         rows = "".join(
             f'<tr>'
             f'<td style="padding:6px 10px;white-space:nowrap">'
@@ -758,6 +758,7 @@ def tab_customers():
             colors=[SEGMENT_COLORS.get(s, "#8b9dc3") for s in seg_df["segment"]],
             height=340,
             show_count=True,
+            currency=False,
         )
 
     with c2:
