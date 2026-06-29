@@ -248,9 +248,11 @@ def area_line(series_list, height=300):
 def donut(labels, values, colors=None, height=320, show_count=False):
     """Donut / pie chart. show_count=True adds raw count + % to each slice label."""
     pal = (colors or PALETTE) * 4
-    label_cfg = {"color": "#182B45", "fontSize": 11}
-    if show_count:
-        label_cfg["formatter"] = "{b}\n{c} ({d}%)"
+    label_cfg = {"color": "#182B45", "fontSize": 11,
+                 "formatter": JS("function(p){var v=p.value;"
+                                 "var s=v>=1e6?'฿'+(v/1e6).toFixed(1)+'M':v>=1e3?'฿'+(v/1e3).toFixed(0)+'K':'฿'+v;"
+                                 "return p.name+'\\n'+s+('" + ("' + ' ('+p.percent.toFixed(0)+'%)'" if show_count else "''") + ");"
+                                 "}")}
     render({
         "backgroundColor": "#ffffff", "textStyle": {"color": "#3D4F66"},
         "series": [{"type": "pie", "radius": ["42%", "68%"], "center": ["42%", "50%"],
@@ -263,7 +265,11 @@ def donut(labels, values, colors=None, height=320, show_count=False):
         "legend": {"orient": "vertical", "right": "4%", "top": "center",
                    "textStyle": {"color": "#3D4F66", "fontSize": 11},
                    "data": [str(l) for l in labels]},
-        "tooltip": {**_tt(), "formatter": "{b}: {c} ({d}%)"},
+        "tooltip": {**_tt(), "formatter": JS(
+            "function(p){var v=p.value;"
+            "var s=v>=1e6?'฿'+(v/1e6).toFixed(1)+'M':v>=1e3?'฿'+(v/1e3).toFixed(0)+'K':'฿'+v;"
+            "return p.name+': '+s+' ('+p.percent.toFixed(0)+'%)'}"
+        )},
     }, height)
 
 
