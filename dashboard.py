@@ -524,63 +524,56 @@ def tab_products():
     # ── Brand & SKU Type Breakdown ────────────────────────────────────────────
     section("BRAND & SKU TYPE BREAKDOWN")
 
-    ff1, ff2 = st.columns(2)
-    with ff1:
-        bd_cats = st.multiselect(
-            "Filter Category",
-            sorted(c for c in combined["category"].unique() if c != "อื่นๆ"),
-            key="bd_cat", placeholder="ทุก Category",
-        )
-    with ff2:
-        bd_brands = st.multiselect(
-            "Filter Brand (affects SKU chart)",
-            sorted(b for b in combined["brand"].unique() if b != "อื่นๆ"),
-            key="bd_brand", placeholder="ทุก Brand",
-        )
+    bd_cats = st.multiselect(
+        "🔍 Filter Category  —  กรองทั้ง Brand และ SKU Type ด้านล่าง",
+        sorted(c for c in combined["category"].unique() if c != "อื่นๆ"),
+        key="bd_cat", placeholder="ทุก Category",
+    )
 
     cat_mask = pd.Series(True, index=combined.index)
     if bd_cats:
         cat_mask &= combined["category"].isin(bd_cats)
-
-    brand_filt = combined[cat_mask]
-    sku_filt   = combined[cat_mask & (combined["brand"].isin(bd_brands) if bd_brands else True)]
+    base = combined[cat_mask]
 
     col_brand, col_sku = st.columns(2)
 
     with col_brand:
-        chart_title("Brand Breakdown")
-        if brand_filt.empty:
+        chart_title("Brand — Revenue Share")
+        if base.empty:
             st.info("ไม่มีข้อมูล")
         else:
-            br = (brand_filt.groupby("brand")["item_price"]
+            br = (base.groupby("brand")["item_price"]
                   .agg(revenue="sum", count="count")
                   .reset_index().sort_values("revenue", ascending=False))
-            ec.treemap(
+            ec.donut(
                 labels=br["brand"].tolist(),
-                revenues=br["revenue"].round(0).astype(int).tolist(),
-                counts=br["count"].tolist(),
-                height=320,
+                values=br["revenue"].round(0).astype(int).tolist(),
+                height=340,
+                show_count=True,
             )
-            st.caption("ขนาด tile = Revenue · hover = Count")
 
     with col_sku:
-        chart_title("SKU Type Breakdown")
+        bd_brands = st.multiselect(
+            "🔍 Filter Brand  —  กรองเฉพาะ SKU chart นี้",
+            sorted(b for b in base["brand"].unique() if b != "อื่นๆ"),
+            key="bd_brand", placeholder="ทุก Brand",
+        )
+        sku_filt = base[base["brand"].isin(bd_brands)] if bd_brands else base
+        chart_title("SKU Type — Revenue")
         if sku_filt.empty:
             st.info("ไม่มีข้อมูล")
         else:
             sk = (sku_filt.groupby("sku_type")["item_price"]
                   .agg(revenue="sum", count="count")
-                  .reset_index().sort_values("revenue", ascending=False).head(15))
-            ec.treemap(
-                labels=sk["sku_type"].tolist(),
-                revenues=sk["revenue"].round(0).astype(int).tolist(),
+                  .reset_index().sort_values("revenue", ascending=True).tail(15))
+            ec.bar_h(
+                categories=sk["sku_type"].tolist(),
+                values=sk["revenue"].round(0).astype(int).tolist(),
                 counts=sk["count"].tolist(),
-                height=320,
+                color=PALETTE[0],
+                height=min(480, max(260, len(sk) * 38)),
+                currency=True,
             )
-            if bd_brands:
-                st.caption(f"Brand filter: {', '.join(bd_brands)}")
-            else:
-                st.caption("ขนาด tile = Revenue · hover = Count")
 
     # ── Network / Heatmap toggle ──────────────────────────────────────────────
     section("PRODUCT NETWORK & CO-OCCURRENCE")
