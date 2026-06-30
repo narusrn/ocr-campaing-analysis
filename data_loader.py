@@ -146,10 +146,12 @@ def load_data() -> dict[str, pd.DataFrame]:
         df["item_price"]      = pd.to_numeric(df["item_price"],  errors="coerce")
         df["item_amount"]     = pd.to_numeric(df["item_amount"], errors="coerce")
 
+        _discount = df["item_name"].str.contains(r'ส่วนลด|discount|coupon|คูปอง', case=False, na=False, regex=True)
         df = df[
             (df["slip_status"] == "approve") &
             (df["item_verify"] == 1) &
-            (df["item_price"] > 0)
+            (df["item_price"] > 0) &
+            (~_discount)
         ].copy()
 
         df["date"]        = df["slip_created_at"].dt.date
