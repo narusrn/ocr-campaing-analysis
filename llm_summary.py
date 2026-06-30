@@ -5,7 +5,7 @@ import pandas as pd
 
 
 def _fmt_thb(v: float) -> str:
-    return f"฿{v:,.0f}"
+    return f"฿{v:,.2f}"
 
 
 def build_context(all_slip: pd.DataFrame, filtered: dict) -> dict:

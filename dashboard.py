@@ -373,10 +373,10 @@ def tab_overview():
     for col, label, val, color in zip(c, [
         "Total Revenue", "Total Orders", "Unique Members", "Avg Basket", "Campaigns"
     ], [
-        f"฿{all_items['item_price'].sum():,.0f}",
+        f"฿{all_items['item_price'].sum():,.2f}",
         f"{all_slip['slip_id'].nunique():,}",
         f"{all_slip['member'].nunique():,}",
-        f"฿{all_items.groupby('slip_id')['item_price'].sum().mean():,.0f}",
+        f"฿{all_items.groupby('slip_id')['item_price'].sum().mean():,.2f}",
         str(len(filtered)),
     ], PALETTE):
         with col:
@@ -487,7 +487,7 @@ def tab_overview():
                 .rename(columns={"merchantname": "Merchant Name",
                                  "slips": "# Slips", "revenue": "Revenue (฿)"})
             )
-            tbl["Revenue (฿)"] = tbl["Revenue (฿)"].apply(lambda v: f"฿{v:,.0f}")
+            tbl["Revenue (฿)"] = tbl["Revenue (฿)"].apply(lambda v: f"฿{v:,.2f}")
             st.caption("เพิ่ม keyword ใน CHAIN_KEYWORDS ใน data_loader.py แล้ว restart")
             st.dataframe(tbl.head(100), hide_index=True, use_container_width=True)
 
@@ -779,7 +779,7 @@ def tab_customers():
     top = rfm.nlargest(10, "monetary")[
         ["member", "monetary", "frequency", "recency_days", "R", "F", "M", "segment"]
     ].copy()
-    top["monetary"] = top["monetary"].apply(lambda x: f"฿{x:,.0f}")
+    top["monetary"] = top["monetary"].apply(lambda x: f"฿{x:,.2f}")
     top["member"]   = top["member"].str[:20] + "…"
     top.columns = ["Member ID", "Total Spend", "Orders", "Days Since Last", "R", "F", "M", "Segment"]
     st.dataframe(top, hide_index=True, use_container_width=True)
