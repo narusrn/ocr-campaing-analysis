@@ -426,8 +426,9 @@ def add_categories_to_df(df, item_col: str = "item_name"):
         else:
             categories.append(c);    cat_scores.append(1.0)
 
-    # ── Brand: keyword only ───────────────────────────────────────────────────
+    # ── Brand: keyword then ML ────────────────────────────────────────────────
     brands = [_match_brand(n, c, cats_db, brands_db) for n, c in zip(names, categories)]
+    _ml_fill(brands, all_vecs, categories, cats_db, brands_db, "brands")
 
     # ── SKU type: keyword then ML ─────────────────────────────────────────────
     skus = [_match_in_cat(n, c, cats_db, "sku_types") for n, c in zip(names, categories)]
