@@ -530,26 +530,33 @@ def tab_products():
     col_brand, col_sku = st.columns(2)
 
     with col_brand:
-        chart_title("Brand — Revenue Share")
+        chart_title("Brand — Revenue Share (Top 10)")
         br = (combined.groupby("brand")["item_price"]
               .agg(revenue="sum", count="count")
               .reset_index().sort_values("revenue", ascending=False))
+        top_br   = br.head(10)
+        rest_br  = br.iloc[10:]
+        if not rest_br.empty:
+            other_row = pd.DataFrame([{"brand": "อื่นๆ",
+                                       "revenue": rest_br["revenue"].sum(),
+                                       "count":   rest_br["count"].sum()}])
+            top_br = pd.concat([top_br, other_row], ignore_index=True)
         ec.donut(
-            labels=br["brand"].tolist(),
-            values=br["revenue"].round(0).astype(int).tolist(),
+            labels=top_br["brand"].tolist(),
+            values=top_br["revenue"].round(0).astype(int).tolist(),
             height=340,
             show_count=True,
         )
 
     with col_sku:
-        chart_title("SKU Type — Revenue")
+        chart_title("SKU Type — Revenue (Top 10)")
         sk_known = combined[combined["sku_type"] != "อื่นๆ"]
         if sk_known.empty:
             st.info("ไม่มีข้อมูล — config SKU Types ใน Categories tab")
         else:
             sk = (sk_known.groupby("sku_type")["item_price"]
                   .agg(revenue="sum", count="count")
-                  .reset_index().sort_values("revenue", ascending=False).head(15))
+                  .reset_index().sort_values("revenue", ascending=False).head(10))
             ec.bar_v(
                 categories=sk["sku_type"].tolist(),
                 values=sk["revenue"].round(0).astype(int).tolist(),
