@@ -144,7 +144,9 @@ DEFAULT_CATEGORIES: dict = {
     },
 }
 
-THRESHOLD = 0.1
+THRESHOLD       = 0.1
+BRAND_THRESHOLD = 0.25
+SKU_THRESHOLD   = 0.25
 
 _model      = None
 _cat_vectors = None
@@ -310,7 +312,7 @@ def _match_in_cat(name: str, category: str, cats_db: dict, field: str) -> str:
 # ── Keyword-first category pre-pass ──────────────────────────────────────────
 
 def _keyword_classify(name: str, cats_db: dict) -> str | None:
-    """Check category keywords via substring match. Returns category name or None."""
+    """Substring match against category keywords. Returns category or None."""
     cleaned = _clean(name)
     for cat, cat_data in cats_db.items():
         kws = cat_data["keywords"] if isinstance(cat_data, dict) else cat_data
@@ -319,39 +321,91 @@ def _keyword_classify(name: str, cats_db: dict) -> str | None:
     return None
 
 
+# ── ML fallback for brand / SKU type ─────────────────────────────────────────
+
+def _ml_fill(results: list, all_vecs, categories: list,
+             cats_db: dict, brands_db: dict | None, field: str) -> None:
+    """In-place: for items still 'อื่นๆ', assign via cosine similarity."""
+    from collections import defaultdict
+    model     = _load_model()
+    threshold = BRAND_THRESHOLD if field == "brands" else SKU_THRESHOLD
+
+    by_cat: dict[str, list[int]] = defaultdict(list)
+    for i, r in enumerate(results):
+        if r == "อื่นๆ":
+            by_cat[categories[i]].append(i)
+
+    for cat, indices in by_cat.items():
+        cd = cats_db.get(cat, {})
+        if not isinstance(cd, dict):
+            continue
+        if field == "brands":
+            brand_names = cd.get("brands", [])
+            labels_kws  = {b: brands_db.get(b, []) for b in brand_names if brands_db and brands_db.get(b)}
+        else:
+            labels_kws = cd.get("sku_types", {})
+        if not labels_kws:
+            continue
+
+        label_list = list(labels_kws.keys())
+        lvecs = np.array([
+            model.encode([_clean(k) for k in kws], show_progress_bar=False).mean(axis=0)
+            for kws in labels_kws.values()
+        ])
+        ivecs   = all_vecs[np.array(indices)]
+        norms_i = np.linalg.norm(ivecs,  axis=1, keepdims=True)
+        norms_l = np.linalg.norm(lvecs,  axis=1, keepdims=True)
+        sims    = (ivecs @ lvecs.T) / (norms_i * norms_l.T + 1e-9)
+
+        for j, idx in enumerate(indices):
+            best = int(np.argmax(sims[j]))
+            if sims[j][best] >= threshold:
+                results[idx] = label_list[best]
+
+
 # ── Main entry point ──────────────────────────────────────────────────────────
 
 def add_categories_to_df(df, item_col: str = "item_name"):
     """Add category, cat_score, brand, sku_type columns. Returns df."""
-    names   = df[item_col].fillna("").tolist()
-    cats_db = load_categories_db()
+    names     = df[item_col].fillna("").tolist()
+    cats_db   = load_categories_db()
+    brands_db = load_brands_db()
+    model     = _load_model()
 
-    # Step 1: keyword pre-pass — fast, deterministic, user-configured
-    kw_results = [_keyword_classify(n, cats_db) for n in names]
+    # Encode ALL names once — shared by category ML, brand ML, SKU ML
+    all_vecs = model.encode([_clean(n) for n in names], batch_size=64, show_progress_bar=False)
 
-    # Step 2: ML for items that keyword didn't catch
-    needs_ml   = [i for i, r in enumerate(kw_results) if r is None]
-    ml_results = {}
+    # ── Category: keyword pre-pass then ML ───────────────────────────────────
+    kw_cats  = [_keyword_classify(n, cats_db) for n in names]
+    needs_ml = [i for i, c in enumerate(kw_cats) if c is None]
     if needs_ml:
-        ml_cats = classify_items([names[i] for i in needs_ml])
-        ml_results = {i: ml_cats[j] for j, i in enumerate(needs_ml)}
+        cat_names, cat_vecs = _build_category_vectors(model)
+        sub      = all_vecs[np.array(needs_ml)]
+        norms_c  = np.linalg.norm(cat_vecs, axis=1, keepdims=True)
+        norms_s  = np.linalg.norm(sub,      axis=1, keepdims=True)
+        sims     = (sub @ cat_vecs.T) / (norms_s * norms_c.T + 1e-9)
+        for j, i in enumerate(needs_ml):
+            best  = int(np.argmax(sims[j]))
+            score = float(sims[j][best])
+            kw_cats[i] = (cat_names[best] if score >= THRESHOLD else "อื่นๆ", score)
 
-    # Merge: keyword wins, ML is fallback
-    categories = []
-    cat_scores = []
-    for i, kw_cat in enumerate(kw_results):
-        if kw_cat is not None:
-            categories.append(kw_cat)
-            cat_scores.append(1.0)          # keyword match = full confidence
+    categories, cat_scores = [], []
+    for c in kw_cats:
+        if isinstance(c, tuple):
+            categories.append(c[0]); cat_scores.append(c[1])
         else:
-            ml_cat, ml_score = ml_results[i]
-            categories.append(ml_cat)
-            cat_scores.append(ml_score)
+            categories.append(c);    cat_scores.append(1.0)
+
+    # ── Brand: keyword then ML ────────────────────────────────────────────────
+    brands = [_match_brand(n, c, cats_db, brands_db) for n, c in zip(names, categories)]
+    _ml_fill(brands, all_vecs, categories, cats_db, brands_db, "brands")
+
+    # ── SKU type: keyword then ML ─────────────────────────────────────────────
+    skus = [_match_in_cat(n, c, cats_db, "sku_types") for n, c in zip(names, categories)]
+    _ml_fill(skus, all_vecs, categories, cats_db, None, "sku_types")
 
     df["category"]  = categories
     df["cat_score"] = cat_scores
-
-    brands_db = load_brands_db()
-    df["brand"]    = [_match_brand(n, c, cats_db, brands_db)    for n, c in zip(names, categories)]
-    df["sku_type"] = [_match_in_cat(n, c, cats_db, "sku_types") for n, c in zip(names, categories)]
+    df["brand"]     = brands
+    df["sku_type"]  = skus
     return df
