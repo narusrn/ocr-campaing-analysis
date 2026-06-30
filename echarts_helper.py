@@ -268,7 +268,7 @@ def donut(labels, values, colors=None, height=320, show_count=False, currency=Tr
         "backgroundColor": "#ffffff", "textStyle": {"color": "#3D4F66"},
         "series": [{"type": "pie", "radius": ["42%", "68%"], "center": ["42%", "50%"],
                     "data": [{"name": str(l), "value": float(v),
-                              "itemStyle": {"color": pal[i]}}
+                              "itemStyle": {"color": pal[i % len(pal)]}}
                              for i, (l, v) in enumerate(zip(labels, values))],
                     "label": label_cfg,
                     "labelLine": {"lineStyle": {"color": "#7a9dc0"}},
