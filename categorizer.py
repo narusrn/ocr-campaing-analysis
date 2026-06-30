@@ -148,6 +148,17 @@ THRESHOLD       = 0.1
 BRAND_THRESHOLD = 0.25
 SKU_THRESHOLD   = 0.25
 
+_BRAND_RENAME: dict[str, str] = {
+    "สิงห์": "Singha",
+    "ช้าง":  "Chang",
+    "มาม่า": "Mama",
+    "ไวไว":  "Wai Wai",
+    "ซีเล็ค": "Selecta",
+    "เลย์":  "Lay's",
+    "โอริโอ้": "Oreo",
+    "คิทแคท": "Kit Kat",
+}
+
 _model      = None
 _cat_vectors = None
 _cat_names  = None
@@ -177,6 +188,9 @@ def load_brands_db() -> dict[str, list[str]]:
     if _BRANDS_PATH.exists():
         with open(_BRANDS_PATH, encoding="utf-8") as f:
             saved = json.load(f)
+        for old, new in _BRAND_RENAME.items():
+            if old in saved:
+                saved[new] = saved.pop(old)
         for name, kws in DEFAULT_BRANDS.items():
             if name not in saved:
                 saved[name] = kws
@@ -203,6 +217,7 @@ def load_categories_db() -> dict:
                 if isinstance(brands, dict):
                     # v2 (brands as {name: [kws]}) → v3 (brands as [name, ...])
                     val["brands"] = list(brands.keys())
+                val["brands"] = [_BRAND_RENAME.get(b, b) for b in val.get("brands", [])]
                 migrated[cat] = val
             else:
                 migrated[cat] = val
