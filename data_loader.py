@@ -6,6 +6,24 @@ from pathlib import Path
 
 DATA_PATH    = Path(__file__).parent / "data" / "Slips.xlsx"
 _STORES_PATH = Path(__file__).parent / "stores_db.json"
+_IGNORE_PATH = Path(__file__).parent / "ignore_db.json"
+
+DEFAULT_IGNORE_KEYWORDS: list[str] = [
+    "ส่วนลด", "discount", "coupon", "คูปอง",
+    "ธนาคาร", "ทรูมันนี่", "truemoney", "true money",
+]
+
+
+def load_ignore_db() -> list[str]:
+    if _IGNORE_PATH.exists():
+        with open(_IGNORE_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    return list(DEFAULT_IGNORE_KEYWORDS)
+
+
+def save_ignore_db(keywords: list[str]) -> None:
+    with open(_IGNORE_PATH, "w", encoding="utf-8") as f:
+        json.dump(keywords, f, ensure_ascii=False, indent=2)
 
 CAMPAIGNS = {
     "PondsxAtlas":              "Pond's x Atlas",
@@ -138,6 +156,7 @@ def _classify_chains(names: list, chain_keywords: dict[str, list[str]]) -> list[
 def load_data() -> dict[str, pd.DataFrame]:
     """Load all sheets, filter approved, add derived columns."""
     chain_keywords, online_chains = load_stores_db()
+    ignore_kws = load_ignore_db()
     result = {}
     for sheet, display in CAMPAIGNS.items():
         df = pd.read_excel(DATA_PATH, sheet_name=sheet, engine="openpyxl")
@@ -146,12 +165,13 @@ def load_data() -> dict[str, pd.DataFrame]:
         df["item_price"]      = pd.to_numeric(df["item_price"],  errors="coerce")
         df["item_amount"]     = pd.to_numeric(df["item_amount"], errors="coerce")
 
-        _discount = df["item_name"].str.contains(r'ส่วนลด|discount|coupon|คูปอง', case=False, na=False, regex=True)
+        _ignore_pat = "|".join(re.escape(k) for k in ignore_kws) if ignore_kws else None
+        _ignored = df["item_name"].str.contains(_ignore_pat, case=False, na=False, regex=True) if _ignore_pat else pd.Series(False, index=df.index)
         df = df[
             (df["slip_status"] == "approve") &
             (df["item_verify"] == 1) &
             (df["item_price"] > 0) &
-            (~_discount)
+            (~_ignored)
         ].copy()
 
         df["date"]        = df["slip_created_at"].dt.date

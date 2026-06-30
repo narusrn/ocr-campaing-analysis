@@ -4,7 +4,8 @@ import pandas as pd
 import echarts_helper as ec
 from data_loader import (load_data, get_slip_df, compute_rfm, compute_basket_matrix,
                          load_stores_db, save_stores_db,
-                         DEFAULT_CHAIN_KEYWORDS, DEFAULT_ONLINE_CHAINS)
+                         DEFAULT_CHAIN_KEYWORDS, DEFAULT_ONLINE_CHAINS,
+                         load_ignore_db, save_ignore_db, DEFAULT_IGNORE_KEYWORDS)
 from categorizer import (add_categories_to_df, preprocess_name,
                          load_categories_db, save_categories_db,
                          load_brands_db, save_brands_db,
@@ -1045,6 +1046,41 @@ def tab_categories():
                 st.rerun()
             else:
                 st.warning("Fill in both chain name and at least one keyword.")
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # Ignore Keywords — กรอง item_name ออกจาก pipeline ทั้งหมด
+    # ══════════════════════════════════════════════════════════════════════════
+    st.divider()
+    section("IGNORE ITEM NAMES")
+
+    if "ignore_working" not in st.session_state:
+        st.session_state.ignore_working = load_ignore_db()
+
+    col_info, col_save, col_reset = st.columns([4, 1, 1])
+    with col_info:
+        st.caption("item_name ที่มี keyword เหล่านี้จะถูกกรองออกก่อนเข้า pipeline ทั้งหมด · ใช้ | คั่น")
+    with col_save:
+        ig_save = st.button("💾 Save & Apply", type="primary", key="ig_save", use_container_width=True)
+    with col_reset:
+        ig_reset = st.button("↺ Defaults", key="ig_reset", use_container_width=True)
+
+    ig_val = " | ".join(st.session_state.ignore_working)
+    ig_edited = st.text_input("Keywords (| คั่น)", value=ig_val, key="ig_input",
+                              placeholder="ส่วนลด | discount | ธนาคาร | ทรูมันนี่")
+
+    if ig_save:
+        new_ig = [k.strip() for k in ig_edited.split("|") if k.strip()]
+        save_ignore_db(new_ig)
+        get_all_data.clear()
+        st.session_state.ignore_working = new_ig
+        st.success(f"Saved {len(new_ig)} ignore keywords — data will reload on next visit")
+        st.rerun()
+
+    if ig_reset:
+        save_ignore_db(list(DEFAULT_IGNORE_KEYWORDS))
+        get_all_data.clear()
+        st.session_state.ignore_working = list(DEFAULT_IGNORE_KEYWORDS)
+        st.rerun()
 
 
 
