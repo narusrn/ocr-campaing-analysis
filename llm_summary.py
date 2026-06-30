@@ -12,13 +12,11 @@ def build_context(all_slip: pd.DataFrame, filtered: dict) -> dict:
     """Extract key metrics from the filtered data for the prompt."""
     campaigns = {}
     for name, df in filtered.items():
-        from data_loader import get_slip_df
-        s = get_slip_df(df)
         campaigns[name] = {
-            "revenue":    round(float(s["slip_total"].sum()), 2),
-            "orders":     int(s["slip_id"].nunique()),
-            "members":    int(s["member"].nunique()),
-            "avg_basket": round(float(s["slip_total"].mean()), 2),
+            "revenue":    round(float(df["item_price"].sum()), 2),
+            "orders":     int(df["slip_id"].nunique()),
+            "members":    int(df["member"].nunique()),
+            "avg_basket": round(float(df.groupby("slip_id")["item_price"].sum().mean()), 2),
         }
 
     hour_counts = all_slip.groupby("hour")["slip_id"].count()
@@ -26,12 +24,13 @@ def build_context(all_slip: pd.DataFrame, filtered: dict) -> dict:
     dow_counts  = all_slip.groupby("day_of_week")["slip_id"].count()
     peak_day    = str(dow_counts.idxmax()) if not dow_counts.empty else ""
 
-    chan = all_slip.groupby("channel")["slip_total"].sum()
-    total_rev   = float(chan.sum()) or 1
+    all_items  = pd.concat(filtered.values())
+    chan       = all_items.groupby("channel")["item_price"].sum()
+    total_rev  = float(chan.sum()) or 1
     online_pct  = round(float(chan.get("Online", 0)) / total_rev * 100, 1)
     offline_pct = round(100 - online_pct, 1)
 
-    chain = (all_slip.groupby("store_chain")["slip_total"]
+    chain = (all_items.groupby("store_chain")["item_price"]
              .sum().sort_values(ascending=False).head(3))
     top_stores = {str(k): round(float(v), 2) for k, v in chain.items()}
 
@@ -42,8 +41,8 @@ def build_context(all_slip: pd.DataFrame, filtered: dict) -> dict:
         "online_pct":    online_pct,
         "offline_pct":   offline_pct,
         "top_stores":    top_stores,
-        "total_revenue": round(float(all_slip["slip_total"].sum()), 2),
-        "total_orders":  int(all_slip["slip_id"].nunique()),
+        "total_revenue": round(float(all_items["item_price"].sum()), 2),
+        "total_orders":  int(all_items["slip_id"].nunique()),
     }
 
 
