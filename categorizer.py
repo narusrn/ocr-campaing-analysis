@@ -347,19 +347,27 @@ def _ml_fill(results: list, all_vecs, categories: list,
         if not labels_kws:
             continue
 
-        label_list = list(labels_kws.keys())
-        lvecs = np.array([
-            model.encode([_clean(k) for k in kws], show_progress_bar=False).mean(axis=0)
-            for kws in labels_kws.values()
-        ])
-        ivecs   = all_vecs[np.array(indices)]
+        label_list, lvecs_list = [], []
+        for lbl, kws in labels_kws.items():
+            if not kws:
+                continue
+            embs = model.encode([_clean(k) for k in kws], show_progress_bar=False)
+            if len(embs) == 0:
+                continue
+            label_list.append(lbl)
+            lvecs_list.append(embs.mean(axis=0))
+        if not label_list:
+            continue
+
+        lvecs   = np.array(lvecs_list)
+        ivecs   = all_vecs[np.array(indices, dtype=int)]
         norms_i = np.linalg.norm(ivecs,  axis=1, keepdims=True)
         norms_l = np.linalg.norm(lvecs,  axis=1, keepdims=True)
         sims    = (ivecs @ lvecs.T) / (norms_i * norms_l.T + 1e-9)
 
         for j, idx in enumerate(indices):
             best = int(np.argmax(sims[j]))
-            if sims[j][best] >= threshold:
+            if float(sims[j][best]) >= threshold:
                 results[idx] = label_list[best]
 
 
