@@ -188,12 +188,15 @@ def load_brands_db() -> dict[str, list[str]]:
     if _BRANDS_PATH.exists():
         with open(_BRANDS_PATH, encoding="utf-8") as f:
             saved = json.load(f)
+        migrated = any(old in saved for old in _BRAND_RENAME)
         for old, new in _BRAND_RENAME.items():
             if old in saved:
                 saved[new] = saved.pop(old)
         for name, kws in DEFAULT_BRANDS.items():
             if name not in saved:
                 saved[name] = kws
+        if migrated:
+            save_brands_db(saved)
         return saved
     return dict(DEFAULT_BRANDS)
 
@@ -208,22 +211,26 @@ def load_categories_db() -> dict:
         with open(_DB_PATH, encoding="utf-8") as f:
             saved = json.load(f)
         migrated = {}
+        brand_renamed = False
         for cat, val in saved.items():
             if isinstance(val, list):
-                # v1 flat → v3
                 migrated[cat] = {"keywords": val, "brands": [], "sku_types": {}}
             elif isinstance(val, dict):
                 brands = val.get("brands", [])
                 if isinstance(brands, dict):
-                    # v2 (brands as {name: [kws]}) → v3 (brands as [name, ...])
                     val["brands"] = list(brands.keys())
-                val["brands"] = [_BRAND_RENAME.get(b, b) for b in val.get("brands", [])]
+                new_brands = [_BRAND_RENAME.get(b, b) for b in val.get("brands", [])]
+                if new_brands != val.get("brands", []):
+                    brand_renamed = True
+                val["brands"] = new_brands
                 migrated[cat] = val
             else:
                 migrated[cat] = val
         for cat, val in DEFAULT_CATEGORIES.items():
             if cat not in migrated:
                 migrated[cat] = val
+        if brand_renamed:
+            save_categories_db(migrated)
         return migrated
     return dict(DEFAULT_CATEGORIES)
 
