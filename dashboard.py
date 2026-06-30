@@ -1,5 +1,30 @@
+import subprocess
+from pathlib import Path
+
 import streamlit as st
 import pandas as pd
+
+
+def _git_persist(*filenames: str) -> None:
+    """Commit and push config files to GitHub so they survive Streamlit Cloud reboots."""
+    try:
+        token = st.secrets.get("GITHUB_TOKEN", "")
+    except Exception:
+        return  # local dev — no secrets file
+    if not token:
+        return
+
+    cwd = Path(__file__).parent
+    repo = "https://narusrn:{}@github.com/narusrn/ocr-campaing-analysis.git".format(token)
+    run  = lambda *cmd: subprocess.run(list(cmd), cwd=cwd, capture_output=True)
+
+    run("git", "config", "user.email", "bot@streamlit.app")
+    run("git", "config", "user.name",  "Streamlit Config Bot")
+    run("git", "remote", "set-url", "origin", repo)
+    for f in filenames:
+        run("git", "add", f)
+    run("git", "commit", "-m", f"chore: save config {', '.join(filenames)}", "--allow-empty")
+    run("git", "push", "origin", "main")
 
 import echarts_helper as ec
 from data_loader import (load_data, get_slip_df, compute_rfm, compute_basket_matrix,
@@ -919,6 +944,7 @@ def tab_categories():
         st.session_state.brands_gen     = bgen + 1
         st.session_state.cats_working   = new_cats
         st.session_state.cats_gen       = gen + 1
+        _git_persist("brands_db.json", "categories_db.json")
         st.success(f"Saved — {len(new_brands)} brands · {len(new_cats)} categories")
         st.rerun()
 
@@ -981,6 +1007,7 @@ def tab_categories():
         st.session_state.stores_working = new_chains
         st.session_state.stores_online  = new_online
         st.session_state.stores_gen     = sgen + 1
+        _git_persist("stores_db.json")
         st.success("Saved! Store data will reload on next tab visit.")
         st.rerun()
 
@@ -1080,6 +1107,7 @@ def tab_categories():
         save_ignore_db(new_ig)
         get_all_data.clear()
         st.session_state.ignore_working = new_ig
+        _git_persist("ignore_db.json")
         st.success(f"Saved {len(new_ig)} ignore keywords — data will reload on next visit")
         st.rerun()
 
