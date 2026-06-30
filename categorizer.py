@@ -21,16 +21,16 @@ DEFAULT_BRANDS: dict[str, list[str]] = {
     "Downy":     ["ดาวนี่", "downy"],
     "Coca-Cola": ["โค้ก", "coke", "coca-cola", "coca cola"],
     "Pepsi":     ["เป๊ปซี่", "pepsi"],
-    "สิงห์":     ["สิงห์", "singha"],
-    "ช้าง":      ["ช้าง", "chang"],
+    "Singha":    ["สิงห์", "singha"],
+    "Chang":     ["ช้าง", "chang"],
     "Lipton":    ["ลิปตัน", "lipton"],
     "Milo":      ["ไมโล", "milo"],
-    "มาม่า":     ["มาม่า", "mama"],
-    "ไวไว":      ["ไวไว", "wai wai", "waiwai"],
-    "ซีเล็ค":    ["ซีเล็ค", "selecta"],
-    "เลย์":      ["เลย์", "lay's", "lays"],
-    "โอริโอ้":   ["โอริโอ้", "oreo"],
-    "คิทแคท":   ["คิทแคท", "kit kat", "kitkat"],
+    "Mama":      ["มาม่า", "mama"],
+    "Wai Wai":   ["ไวไว", "wai wai", "waiwai"],
+    "Selecta":   ["ซีเล็ค", "selecta"],
+    "Lay's":     ["เลย์", "lay's", "lays"],
+    "Oreo":      ["โอริโอ้", "oreo"],
+    "Kit Kat":   ["คิทแคท", "kit kat", "kitkat"],
     "Pocky":     ["ป๊อกกี้", "pocky"],
     "Clear":     ["เคลียร์", "clear"],
     "Colgate":   ["คอลเกต", "colgate"],
@@ -89,7 +89,7 @@ DEFAULT_CATEGORIES: dict = {
             "มาม่า", "ข้าวกล่อง", "แซนวิช", "ไส้กรอก", "บะหมี่", "ข้าวต้ม",
             "ลูกชิ้น", "สุกี้", "อาหารกระป๋อง", "โจ๊ก", "ซีเล็ค",
         ],
-        "brands": ["มาม่า", "ไวไว", "ซีเล็ค"],
+        "brands": ["Mama", "Wai Wai", "Selecta"],
         "sku_types": {
             "บะหมี่กึ่งสำเร็จรูป": ["บะหมี่", "instant noodle", "โจ๊ก"],
             "ข้าวกล่อง":           ["ข้าวกล่อง", "ข้าว"],
@@ -102,7 +102,7 @@ DEFAULT_CATEGORIES: dict = {
             "น้ำเปล่า", "นม", "กาแฟ", "โค้ก", "น้ำผลไม้", "ชา", "เบียร์", "เครื่องดื่ม",
             "เป๊ปซี่", "ฟันต้า", "นมกล่อง", "โอเลี้ยง", "ชาเขียว", "สิงห์", "ช้าง",
         ],
-        "brands": ["Coca-Cola", "Pepsi", "สิงห์", "ช้าง", "Lipton", "Milo"],
+        "brands": ["Coca-Cola", "Pepsi", "Singha", "Chang", "Lipton", "Milo"],
         "sku_types": {
             "น้ำเปล่า":  ["น้ำเปล่า", "water", "น้ำดื่ม"],
             "นม":        ["นม", "milk", "นมกล่อง", "นมถุง"],
@@ -118,7 +118,7 @@ DEFAULT_CATEGORIES: dict = {
             "ขนมปัง", "คุกกี้", "มันฝรั่ง", "เลย์", "ช็อกโกแลต", "ทอฟฟี่",
             "วาฟเฟิล", "ป๊อปคอร์น", "เยลลี่", "ลูกอม", "สแน็ค", "ขนม",
         ],
-        "brands": ["เลย์", "โอริโอ้", "คิทแคท", "Pocky"],
+        "brands": ["Lay's", "Oreo", "Kit Kat", "Pocky"],
         "sku_types": {
             "มันฝรั่งทอด":   ["มันฝรั่ง", "chips", "เลย์"],
             "ช็อกโกแลต":    ["ช็อกโกแลต", "chocolate", "kitkat"],
@@ -404,9 +404,8 @@ def add_categories_to_df(df, item_col: str = "item_name"):
         else:
             categories.append(c);    cat_scores.append(1.0)
 
-    # ── Brand: keyword then ML ────────────────────────────────────────────────
+    # ── Brand: keyword only ───────────────────────────────────────────────────
     brands = [_match_brand(n, c, cats_db, brands_db) for n, c in zip(names, categories)]
-    _ml_fill(brands, all_vecs, categories, cats_db, brands_db, "brands")
 
     # ── SKU type: keyword then ML ─────────────────────────────────────────────
     skus = [_match_in_cat(n, c, cats_db, "sku_types") for n, c in zip(names, categories)]
