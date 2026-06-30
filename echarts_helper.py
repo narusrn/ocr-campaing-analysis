@@ -75,10 +75,10 @@ def _cat_ax(data, rotate=0):
 
 def _val_ax(currency=False):
     if currency:
-        fmt = JS("function(v){if(v>=1e6)return'฿'+(v/1e6).toFixed(1)+'M';"
-                 "if(v>=1e3)return'฿'+(v/1e3).toFixed(0)+'K';return'฿'+v;}")
+        fmt = JS("function(v){if(v>=1e6)return'฿'+(v/1e6).toFixed(2)+'M';"
+                 "if(v>=1e3)return'฿'+(v/1e3).toFixed(2)+'K';return'฿'+v.toFixed(2);}")
     else:
-        fmt = JS("function(v){return v.toLocaleString()}")
+        fmt = JS("function(v){return v.toLocaleString('th-TH',{maximumFractionDigits:2})}")
     return {"type": "value",
             "splitLine": {"lineStyle": {"color": "#C4D8F8", "type": "dashed"}},
             "axisLine": {"show": False}, "axisTick": {"show": False},
@@ -92,7 +92,7 @@ def bar_v(categories, values, color=None, height=280, currency=False, rotate=0):
     if currency:
         lbl = JS("function(p){if(p.value>=1e6)return'฿'+(p.value/1e6).toFixed(1)+'M';"
                  "if(p.value>=1e3)return'฿'+(p.value/1e3).toFixed(0)+'K';"
-                 "return'฿'+p.value.toLocaleString();}")
+                 "return'฿'+p.value.toFixed(2);}")
     else:
         lbl = JS("function(p){return p.value.toLocaleString()}")
     render({
@@ -105,7 +105,16 @@ def bar_v(categories, values, color=None, height=280, currency=False, rotate=0):
                     "barMaxWidth": 52,
                     "label": {"show": True, "position": "top",
                               "color": "#3D4F66", "fontSize": 9, "formatter": lbl}}],
-        "tooltip": {"trigger": "axis", **_tt()},
+        "tooltip": {"trigger": "axis", **_tt(), "formatter": JS(
+            "function(params){var s=params[0].axisValue+'<br>';"
+            "params.forEach(function(p){"
+            "var v=p.value;"
+            "var f=v>=1e6?'฿'+(v/1e6).toFixed(2)+'M':v>=1e3?'฿'+(v/1e3).toFixed(2)+'K':'฿'+v.toFixed(2);"
+            "s+=p.marker+p.seriesName+': '+f+'<br>';});return s;}"
+        ) if currency else JS(
+            "function(params){var s=params[0].axisValue+'<br>';"
+            "params.forEach(function(p){s+=p.marker+p.seriesName+': '+p.value.toLocaleString('th-TH',{maximumFractionDigits:2})+'<br>';});return s;}"
+        )},
     }, height)
 
 
@@ -115,7 +124,7 @@ def bar_h(categories, values, color=None, height=300, currency=False, counts=Non
     if currency:
         lbl = JS("function(p){if(p.value>=1e6)return'฿'+(p.value/1e6).toFixed(1)+'M';"
                  "if(p.value>=1e3)return'฿'+(p.value/1e3).toFixed(0)+'K';"
-                 "return'฿'+p.value.toLocaleString();}")
+                 "return'฿'+p.value.toFixed(2);}")
     else:
         lbl = JS("function(p){return p.value>=1e6?(p.value/1e6).toFixed(1)+'M':"
                  "p.value>=1e3?(p.value/1e3).toFixed(0)+'K':p.value.toLocaleString()}")
@@ -126,13 +135,23 @@ def bar_h(categories, values, color=None, height=300, currency=False, counts=Non
             "function(params){"
             "var d=params[0];"
             "var rev=d.data.value>=1e6?'฿'+(d.data.value/1e6).toFixed(1)+'M':"
-            "d.data.value>=1e3?'฿'+(d.data.value/1e3).toFixed(0)+'K':"
-            "'฿'+d.data.value.toLocaleString();"
+            "d.data.value>=1e3?'฿'+(d.data.value/1e3).toFixed(2)+'K':"
+            "'฿'+d.data.value.toFixed(2);"
             "return d.marker+d.name+'<br>Revenue: <b>'+rev+'</b><br>Count: <b>'+d.data.count.toLocaleString()+'</b>';}"
         )}
     else:
         data = [float(v) for v in values]
-        tooltip = {"trigger": "axis", **_tt()}
+        if currency:
+            tooltip = {"trigger": "axis", **_tt(), "formatter": JS(
+                "function(params){var d=params[0];"
+                "var v=d.value;var f=v>=1e6?'฿'+(v/1e6).toFixed(2)+'M':v>=1e3?'฿'+(v/1e3).toFixed(2)+'K':'฿'+v.toFixed(2);"
+                "return d.marker+d.name+': '+f;}"
+            )}
+        else:
+            tooltip = {"trigger": "axis", **_tt(), "formatter": JS(
+                "function(params){var d=params[0];"
+                "return d.marker+d.name+': '+d.value.toLocaleString('th-TH',{maximumFractionDigits:2});}"
+            )}
 
     render({
         "backgroundColor": "#ffffff", "textStyle": {"color": "#3D4F66"},
@@ -154,7 +173,7 @@ def bar_h_dual(categories, revenues, counts, height=320):
     """Horizontal bar with dual x-axis: Revenue (bottom, ฿) + Count (top)."""
     lbl_rev = JS("function(p){if(p.value>=1e6)return'฿'+(p.value/1e6).toFixed(1)+'M';"
                  "if(p.value>=1e3)return'฿'+(p.value/1e3).toFixed(0)+'K';"
-                 "return'฿'+p.value.toLocaleString();}")
+                 "return'฿'+p.value.toFixed(2);}")
     lbl_cnt = JS("function(p){return p.value.toLocaleString()}")
     ydata = [str(c) for c in categories]
     render({
@@ -197,7 +216,7 @@ def bar_h_dual(categories, revenues, counts, height=320):
             "var s=params[0].axisValue+'<br>';"
             "params.forEach(function(p){"
             "if(p.seriesName==='Revenue (฿)'){"
-            "s+=p.marker+'Revenue: ฿'+p.value.toLocaleString('th-TH',{maximumFractionDigits:0})+'<br>';}"
+            "s+=p.marker+'Revenue: ฿'+p.value.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})+'<br>';}"
             "else{s+=p.marker+'Count: '+p.value.toLocaleString()+'<br>';}"
             "});return s;}"
         )},
@@ -238,7 +257,7 @@ def area_line(series_list, height=300):
                 "var s=params[0].axisValue+'<br>';"
                 "params.forEach(function(p){"
                 "if(p.value==null)return;"
-                "s+=p.marker+p.seriesName+': ฿'+p.value.toLocaleString('th-TH',{maximumFractionDigits:0})+'<br>';"
+                "s+=p.marker+p.seriesName+': ฿'+p.value.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})+'<br>';"
                 "});return s;}"
             ),
         },
@@ -250,7 +269,7 @@ def donut(labels, values, colors=None, height=320, show_count=False, currency=Tr
     pal = (colors or PALETTE) * 4
     if currency:
         _fmt_val = ("v>=1e6?'฿'+(v/1e6).toFixed(1)+'M'"
-                    ":v>=1e3?'฿'+(v/1e3).toFixed(0)+'K':'฿'+v")
+                    ":v>=1e3?'฿'+(v/1e3).toFixed(2)+'K':'฿'+v.toFixed(2)")
     else:
         _fmt_val = ("v>=1e6?(v/1e6).toFixed(1)+'M items'"
                     ":v>=1e3?(v/1e3).toFixed(0)+'K items':v+' items'")
@@ -297,24 +316,24 @@ def treemap(labels, revenues, counts=None, height=340):
         tt_fmt = JS(
             "function(p){"
             "var rev=p.value>=1e6?'฿'+(p.value/1e6).toFixed(1)+'M':"
-            "p.value>=1e3?'฿'+(p.value/1e3).toFixed(0)+'K':"
-            "'฿'+p.value.toLocaleString();"
+            "p.value>=1e3?'฿'+(p.value/1e3).toFixed(2)+'K':"
+            "'฿'+p.value.toFixed(2);"
             "return p.marker+'<b>'+p.name+'</b><br>Revenue: <b>'+rev+'</b><br>Count: <b>'+p.data.count.toLocaleString()+'</b>';}"
         )
     else:
         tt_fmt = JS(
             "function(p){"
             "var rev=p.value>=1e6?'฿'+(p.value/1e6).toFixed(1)+'M':"
-            "p.value>=1e3?'฿'+(p.value/1e3).toFixed(0)+'K':"
-            "'฿'+p.value.toLocaleString();"
+            "p.value>=1e3?'฿'+(p.value/1e3).toFixed(2)+'K':"
+            "'฿'+p.value.toFixed(2);"
             "return p.marker+'<b>'+p.name+'</b><br>Revenue: <b>'+rev+'</b>';}"
         )
 
     lbl_fmt = JS(
         "function(p){"
         "var rev=p.value>=1e6?'฿'+(p.value/1e6).toFixed(1)+'M':"
-        "p.value>=1e3?'฿'+(p.value/1e3).toFixed(0)+'K':"
-        "'฿'+p.value.toLocaleString();"
+        "p.value>=1e3?'฿'+(p.value/1e3).toFixed(2)+'K':"
+        "'฿'+p.value.toFixed(2);"
         "return p.name+'\\n'+rev;}"
     )
 
@@ -384,7 +403,7 @@ def bar_v_multi(categories, series_list, height=280, currency=False):
     if currency:
         lbl = JS("function(p){if(p.value>=1e6)return'฿'+(p.value/1e6).toFixed(1)+'M';"
                  "if(p.value>=1e3)return'฿'+(p.value/1e3).toFixed(0)+'K';"
-                 "return'฿'+p.value.toLocaleString();}")
+                 "return'฿'+p.value.toFixed(2);}")
     else:
         lbl = JS("function(p){return p.value.toLocaleString()}")
     series = []
@@ -405,7 +424,16 @@ def bar_v_multi(categories, series_list, height=280, currency=False):
         "legend": {"data": [s["name"] for s in series_list], "top": 0,
                    "textStyle": {"color": "#3D4F66", "fontSize": 11}},
         "series": series,
-        "tooltip": {"trigger": "axis", **_tt()},
+        "tooltip": {"trigger": "axis", **_tt(), "formatter": JS(
+            "function(params){var s=params[0].axisValue+'<br>';"
+            "params.forEach(function(p){"
+            "var v=p.value;"
+            "var f=v>=1e6?'฿'+(v/1e6).toFixed(2)+'M':v>=1e3?'฿'+(v/1e3).toFixed(2)+'K':'฿'+v.toFixed(2);"
+            "s+=p.marker+p.seriesName+': '+f+'<br>';});return s;}"
+        ) if currency else JS(
+            "function(params){var s=params[0].axisValue+'<br>';"
+            "params.forEach(function(p){s+=p.marker+p.seriesName+': '+p.value.toLocaleString('th-TH',{maximumFractionDigits:2})+'<br>';});return s;}"
+        )},
     }, height)
 
 
@@ -444,6 +472,6 @@ def bubble_scatter(segments_data, height=360):
             "+p.marker+' Segment: '+p.seriesName+'<br>'"
             "+'Frequency: '+p.data[0]+'<br>'"
             "+'Recency: '+p.data[1]+' days<br>'"
-            "+'Spend: ฿'+p.data[2].toLocaleString('th-TH',{maximumFractionDigits:0});}"
+            "+'Spend: ฿'+p.data[2].toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});}"
         )},
     }, height)
