@@ -26,7 +26,10 @@ The file lives at `data/Slips.xlsx` inside the project. Each Excel sheet maps to
 **OpenAI API key** — `.streamlit/secrets.toml`:
 ```toml
 OPENAI_API_KEY = "sk-..."
+GITHUB_TOKEN = "ghp_..."
 ```
+
+`GITHUB_TOKEN` requires a fine-grained token with **Contents: Read and write** on the repo. It enables `_git_persist()` in `dashboard.py` to commit JSON config files back to GitHub on every Save, so config survives Streamlit Cloud reboots (ephemeral filesystem).
 
 **Streamlit theme** — `.streamlit/config.toml`. Primary color is `#00A3E0` (Unilever blue). All chart colors follow `PALETTE` and `SEGMENT_COLORS` in `echarts_helper.py`.
 
@@ -43,10 +46,14 @@ Single-page Streamlit dashboard (`dashboard.py`) with four tabs. Data flows one 
 
 ### Category classification (`categorizer.py`)
 - Uses `sentence-transformers` model `paraphrase-multilingual-MiniLM-L12-v2` (multilingual, handles Thai + English).
-- Category keyword embeddings are averaged per category; cosine similarity assigns items. Threshold is `0.1` — items below get `"อื่นๆ"`.
-- Model and vectors are module-level globals, lazy-loaded on first call. Call `reset_cache()` after changing categories to force a rebuild.
-- `preprocess_name()` strips spaces between consecutive Thai characters (OCR artifact).
-- Category keywords are persisted to `categories_db.json` and editable from the UI (Categories tab).
+- Classification pipeline per item: **keyword substring pre-pass** (`_keyword_classify`) → ML cosine similarity fallback. Same pattern for brand and SKU type.
+- `_clean(text)` NFC-normalizes, removes Thai-Thai spaces (OCR artifact), lowercases — used before both keyword matching and ML encoding.
+- All item names are encoded **once** in `add_categories_to_df()`; the same vectors are reused for category, brand, and SKU type classification.
+- Category threshold `THRESHOLD = 0.1`; brand/SKU thresholds `BRAND_THRESHOLD = SKU_THRESHOLD = 0.25`.
+- Brand names are all English. `_BRAND_RENAME` migrates any Thai keys found in saved JSON on load and auto-saves the fixed file.
+- Brand keywords live in `brands_db.json` (global lookup). Category `brands` field is a list of brand names (keys into `brands_db`).
+- Model and category vectors are module-level globals, lazy-loaded. Call `reset_cache()` after changing categories to force a rebuild.
+- `preprocess_name()` strips spaces between consecutive Thai characters (legacy; `_clean()` is the preferred normalizer now).
 
 ### Chart rendering (`echarts_helper.py`)
 - All charts use Apache ECharts loaded from CDN, rendered as `<iframe>` via `streamlit.components.v1.html`.
@@ -59,6 +66,7 @@ Single-page Streamlit dashboard (`dashboard.py`) with four tabs. Data flows one 
 ### AI summaries (`llm_summary.py`)
 - Three context builders (`build_context`, `build_products_context`, `build_rfm_context`) extract aggregated metrics into plain dicts.
 - Each sends a Thai-language prompt to `gpt-4o-mini` and returns markdown text.
+- `_strip_fence()` removes markdown code fences that `gpt-4o-mini` sometimes wraps responses in before passing to `highlight_insight()`.
 - `highlight_insight()` converts the markdown response to colored HTML — no external markdown library.
 
 ### Caching strategy
@@ -70,15 +78,29 @@ Single-page Streamlit dashboard (`dashboard.py`) with four tabs. Data flows one 
 ### Persistent state (JSON files)
 | File | Purpose | Managed by |
 |------|---------|------------|
-| `categories_db.json` | Category → keyword lists | `categorizer.py` |
+| `categories_db.json` | Category → keywords, brand list, SKU types | `categorizer.py` |
+| `brands_db.json` | Brand name → keyword list (global lookup) | `categorizer.py` |
 | `stores_db.json` | Store chain → keyword lists + online set | `data_loader.py` |
+| `ignore_db.json` | Item name substrings to exclude from pipeline | `data_loader.py` |
 
-Both files are auto-created on first save; defaults are module-level dicts in their respective modules. New default entries are auto-merged into existing saved configs on load.
+All files are committed to git and auto-created on first save if missing. New default entries are auto-merged into existing saved configs on load. On Streamlit Cloud, `_git_persist()` pushes changes back to GitHub on each Save so config survives reboots.
+
+**Data filter** (`load_data()`): rows must satisfy `slip_status == "approve"` AND `item_verify == 1` AND `item_price > 0` AND item name must not match any keyword in `ignore_db.json` (default: ส่วนลด, ธนาคาร, ทรูมันนี่, etc.).
 
 ### Tab layout
 | Tab | Function | Content |
 |-----|----------|---------|
 | Overview | `tab_overview()` | KPIs, revenue trend, campaign comparison, time heatmap, channel/store breakdown |
-| Products | `tab_products()` | Category breakdown, item network graph, co-occurrence heatmap, top combos |
+| Products | `tab_products()` | Category breakdown, brand/SKU donuts (top 10 + อื่นๆ), item network graph, co-occurrence heatmap |
 | Customers RFM | `tab_customers()` | Segment KPIs, donut + bubble scatter, top members table |
-| Categories | `tab_categories()` | Category keyword editor **and** store chain keyword editor |
+| Categories | `tab_categories()` | Category/brand keyword editor, store chain editor, ignore keywords editor |
+
+**Products tab notes:**
+- Brand and SKU type charts show top 10 only; remainder grouped as อื่นๆ.
+- Unclassified items (`brand == "อื่นๆ"`) fall back to the campaign's own brand name (matched via `brands_db` against the campaign display name).
+- SKU types are edited as textarea with format `Name = kw1|kw2` per line.
+- `🔄 Reload Classification` button clears `get_categorized` cache and reruns.
+
+**Streamlit Cloud deploy notes:**
+- Reboot ≠ Rerun. Reboot kills the process and redeploys from git; Rerun re-executes the already-deployed code.
+- Auto-deploy from GitHub push takes ~1-2 minutes.
