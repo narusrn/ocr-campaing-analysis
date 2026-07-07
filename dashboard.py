@@ -802,23 +802,6 @@ def tab_segments():
     segs          = compute_segments(cat_df)
     total_members = int(cat_df["member"].nunique())
 
-    def _member_table(members: set):
-        if not members:
-            st.info("ไม่มีสมาชิกในกลุ่มนี้")
-            return
-        sub = cat_df[cat_df["member"].isin(members)]
-        tbl = (
-            sub.groupby("member")
-               .agg(orders=("slip_id", "nunique"), spend=("item_price", "sum"))
-               .reset_index()
-               .sort_values("spend", ascending=False)
-               .head(50)
-        )
-        tbl["spend"]  = tbl["spend"].apply(lambda x: f"฿{x:,.2f}")
-        tbl["member"] = tbl["member"].astype(str).str[:20] + "…"
-        tbl.columns   = ["Member ID", "Orders", "Total Spend"]
-        st.dataframe(tbl, hide_index=True, use_container_width=True)
-
     # ── Retail Channel ────────────────────────────────────────────────────
     section("🏪 RETAIL CHANNEL PREFERENCE")
     ch_names = list(CHANNEL_SEGMENTS.keys()) + [ONLINE_SEGMENT]
@@ -829,18 +812,13 @@ def tab_segments():
     if not nz_ch:
         st.info("ไม่พบข้อมูลช่องทางการขาย")
     else:
-        col_c, col_t = st.columns([2, 1])
-        with col_c:
-            chart_title("MEMBER COUNT & REVENUE BY CHANNEL")
-            ec.bar_h_dual(
-                categories=[x[0] for x in nz_ch],
-                revenues=[x[2] for x in nz_ch],
-                counts=[x[1] for x in nz_ch],
-                height=max(220, len(nz_ch) * 52 + 80),
-            )
-        with col_t:
-            sel_ch = st.selectbox("ดูสมาชิกใน segment", [x[0] for x in nz_ch], key="seg_ch_sel")
-            _member_table(segs[sel_ch]["members"])
+        chart_title("MEMBER COUNT & REVENUE BY CHANNEL")
+        ec.bar_h_dual(
+            categories=[x[0] for x in nz_ch],
+            revenues=[x[2] for x in nz_ch],
+            counts=[x[1] for x in nz_ch],
+            height=max(240, len(nz_ch) * 56 + 100),
+        )
 
     # ── Category Affinity ─────────────────────────────────────────────────
     section("🛒 CATEGORY AFFINITY")
@@ -852,41 +830,51 @@ def tab_segments():
     if not nz_cat:
         st.info("ไม่พบข้อมูลหมวดหมู่สินค้า")
     else:
-        col_c2, col_t2 = st.columns([2, 1])
-        with col_c2:
-            chart_title("MEMBER COUNT & REVENUE BY CATEGORY AFFINITY")
-            ec.bar_h_dual(
-                categories=[x[0] for x in nz_cat],
-                revenues=[x[2] for x in nz_cat],
-                counts=[x[1] for x in nz_cat],
-                height=max(260, len(nz_cat) * 52 + 80),
-            )
-        with col_t2:
-            sel_cat = st.selectbox("ดูสมาชิกใน segment", [x[0] for x in nz_cat], key="seg_cat_sel")
-            _member_table(segs[sel_cat]["members"])
+        chart_title("MEMBER COUNT & REVENUE BY CATEGORY AFFINITY")
+        ec.bar_h_dual(
+            categories=[x[0] for x in nz_cat],
+            revenues=[x[2] for x in nz_cat],
+            counts=[x[1] for x in nz_cat],
+            height=max(280, len(nz_cat) * 56 + 100),
+        )
 
     # ── Shopper Behavior ──────────────────────────────────────────────────
     section("⚡ SHOPPER BEHAVIOR")
     heavy_cnt = len(segs["Heavy Shopper"]["members"])
     bulk_cnt  = len(segs["Bulk Shopper"]["members"])
+    other_cnt = total_members - len(segs["Heavy Shopper"]["members"] | segs["Bulk Shopper"]["members"])
 
-    c1, c2, c3 = st.columns(3)
-    with c1:
+    col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
+    with col_kpi1:
         kpi("Total Members", f"{total_members:,}", color=PALETTE[0])
-    with c2:
+    with col_kpi2:
         sub_h = f"{heavy_cnt / total_members * 100:.1f}% · spend ≥ 80th percentile" if total_members else "n/a"
         kpi("Heavy Shopper", f"{heavy_cnt:,}", sub=sub_h, color=PALETTE[2])
-    with c3:
+    with col_kpi3:
         sub_b = f"{bulk_cnt / total_members * 100:.1f}% · item qty ≥ 3" if total_members else "n/a"
         kpi("Bulk Shopper", f"{bulk_cnt:,}", sub=sub_b, color=PALETTE[1])
 
-    col_h, col_b = st.columns(2)
-    with col_h:
-        with st.expander(f"👥 Heavy Shoppers — {heavy_cnt:,} members"):
-            _member_table(segs["Heavy Shopper"]["members"])
-    with col_b:
-        with st.expander(f"📦 Bulk Shoppers — {bulk_cnt:,} members"):
-            _member_table(segs["Bulk Shopper"]["members"])
+    col_d1, col_d2 = st.columns(2)
+    with col_d1:
+        chart_title("BEHAVIOR SEGMENT DISTRIBUTION")
+        ec.donut(
+            labels=["Heavy Shopper", "Bulk Shopper", "Others"],
+            values=[heavy_cnt, bulk_cnt, max(other_cnt, 0)],
+            colors=[PALETTE[2], PALETTE[1], PALETTE[4]],
+            height=300,
+            show_count=True,
+            currency=False,
+        )
+    with col_d2:
+        chart_title("BEHAVIOR SEGMENT — REVENUE SHARE")
+        ec.donut(
+            labels=["Heavy Shopper", "Bulk Shopper"],
+            values=[segs["Heavy Shopper"]["revenue"], segs["Bulk Shopper"]["revenue"]],
+            colors=[PALETTE[2], PALETTE[1]],
+            height=300,
+            show_count=False,
+            currency=True,
+        )
 
 
 DAY_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
