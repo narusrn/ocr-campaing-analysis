@@ -788,6 +788,7 @@ def tab_customers():
 # ═════════════════════════════════════════════════════════════════════════════
 # Tab 4 — Customer Segments
 # ═════════════════════════════════════════════════════════════════════════════
+@st.fragment
 def tab_segments():
     from segment_helper import (CHANNEL_SEGMENTS, CATEGORY_SEGMENTS,
                                 ONLINE_SEGMENT, compute_segments)
