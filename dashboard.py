@@ -788,17 +788,18 @@ def tab_customers():
 # ═════════════════════════════════════════════════════════════════════════════
 # Tab 4 — Customer Segments
 # ═════════════════════════════════════════════════════════════════════════════
-@st.fragment
 def tab_segments():
     from segment_helper import (CHANNEL_SEGMENTS, CATEGORY_SEGMENTS,
                                 ONLINE_SEGMENT, compute_segments)
 
-    seg_camp = st.selectbox("Campaign", list(filtered.keys()), key="seg_camp")
-    cat_df   = get_categorized(seg_camp, filtered[seg_camp])
-
-    if "category" not in cat_df.columns or "sku_type" not in cat_df.columns:
-        get_categorized.clear()
-        st.rerun()
+    cat_dfs = {}
+    for name, df in filtered.items():
+        cdf = get_categorized(name, df)
+        if "category" not in cdf.columns:
+            get_categorized.clear()
+            st.rerun()
+        cat_dfs[name] = cdf
+    cat_df = pd.concat(cat_dfs.values())
 
     segs          = compute_segments(cat_df)
     total_members = int(cat_df["member"].nunique())
