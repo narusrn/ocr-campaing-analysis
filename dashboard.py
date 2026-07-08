@@ -789,8 +789,8 @@ def tab_customers():
 # Tab 4 — Customer Segments
 # ═════════════════════════════════════════════════════════════════════════════
 def tab_segments():
-    from segment_helper import (CHANNEL_SEGMENTS, CATEGORY_SEGMENTS,
-                                ONLINE_SEGMENT, compute_segments)
+    from segment_helper import (CHANNEL_SEGMENTS, ONLINE_SEGMENT,
+                                compute_segments, load_category_segments)
 
     cat_dfs = {}
     for name, df in filtered.items():
@@ -824,7 +824,7 @@ def tab_segments():
 
     # ── Category Affinity ─────────────────────────────────────────────────
     section("🛒 CATEGORY AFFINITY")
-    cat_names = list(CATEGORY_SEGMENTS.keys())
+    cat_names = list(load_category_segments().keys())
     nz_cat    = sorted(
         [(n, len(segs[n]["members"]), segs[n]["revenue"]) for n in cat_names if segs[n]["members"]],
         key=lambda x: x[1],
@@ -1208,6 +1208,65 @@ def tab_categories():
         st.session_state.ignore_working = list(DEFAULT_IGNORE_KEYWORDS)
         st.rerun()
 
+    # ══════════════════════════════════════════════════════════════════════════
+    # Category Affinity Segments
+    # ══════════════════════════════════════════════════════════════════════════
+    st.divider()
+    from segment_helper import load_category_segments, save_category_segments  # noqa: PLC0415
+
+    if "segs_working" not in st.session_state:
+        st.session_state.segs_working = load_category_segments()
+    if "segs_gen" not in st.session_state:
+        st.session_state.segs_gen = 0
+
+    segs_cfg = st.session_state.segs_working
+    segs_gen = st.session_state.segs_gen
+
+    col_info, col_save = st.columns([5, 1])
+    with col_info:
+        section("CATEGORY AFFINITY SEGMENTS")
+        st.caption("กำหนด segment name → category + SKU Type ที่ต้องการ · SKU Types ว่าง = ใช้ทั้ง category")
+    with col_save:
+        st.markdown("<br>", unsafe_allow_html=True)
+        seg_save = st.button("💾 Save", type="primary", key="seg_save", use_container_width=True)
+
+    segs_df = pd.DataFrame([
+        {
+            "Segment":   name,
+            "Category":  spec["category"],
+            "SKU Types": "|".join(spec["sku_types"]) if spec["sku_types"] else "",
+        }
+        for name, spec in segs_cfg.items()
+    ])
+    edited_segs = st.data_editor(
+        segs_df, use_container_width=True, hide_index=True, num_rows="dynamic",
+        column_config={
+            "Segment":   st.column_config.TextColumn("Segment Name", width="medium"),
+            "Category":  st.column_config.SelectboxColumn(
+                "Category", options=list(cats.keys()), width="medium"
+            ),
+            "SKU Types": st.column_config.TextColumn(
+                "SKU Types (| คั่น, ว่าง = ทั้ง category)", width="large"
+            ),
+        },
+        key=f"seg_editor_{segs_gen}",
+    )
+
+    if seg_save:
+        new_segs: dict = {}
+        for _, row in edited_segs.iterrows():
+            sname    = str(row.get("Segment",   "") or "").strip()
+            cat_name = str(row.get("Category",  "") or "").strip()
+            skus_raw = str(row.get("SKU Types", "") or "").strip()
+            skus     = [s.strip() for s in skus_raw.split("|") if s.strip()] or None
+            if sname and cat_name:
+                new_segs[sname] = {"category": cat_name, "sku_types": skus}
+        save_category_segments(new_segs)
+        st.session_state.segs_working = new_segs
+        st.session_state.segs_gen     = segs_gen + 1
+        _git_persist("segments_db.json")
+        st.success(f"Saved — {len(new_segs)} category affinity segments")
+        st.rerun()
 
 
 # ═════════════════════════════════════════════════════════════════════════════

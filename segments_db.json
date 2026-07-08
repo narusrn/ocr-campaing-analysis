@@ -1,0 +1,11 @@
+{
+  "Skincare Shopper": {"category": "สกินแคร์/บิวตี้", "sku_types": null},
+  "Hair Care Shopper": {"category": "ของใช้ในบ้าน", "sku_types": ["แชมพู", "ครีมนวดผม"]},
+  "Oral Care Shopper": {"category": "ของใช้ในบ้าน", "sku_types": ["ยาสีฟัน"]},
+  "Laundry Shopper": {"category": "ผงซักฟอก/น้ำยา", "sku_types": ["ผงซักฟอก", "น้ำยาซักผ้า"]},
+  "Fabric Care Shopper": {"category": "ผงซักฟอก/น้ำยา", "sku_types": ["น้ำยาปรับผ้านุ่ม"]},
+  "Dishwash Shopper": {"category": "ผงซักฟอก/น้ำยา", "sku_types": ["น้ำยาล้างจาน"]},
+  "Snack Shopper": {"category": "ขนม/ของกินเล่น", "sku_types": null},
+  "Beverage Shopper": {"category": "เครื่องดื่ม", "sku_types": null},
+  "Ready to Eat Shopper": {"category": "อาหารสำเร็จรูป", "sku_types": null}
+}
