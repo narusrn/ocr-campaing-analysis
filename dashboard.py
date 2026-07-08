@@ -886,6 +886,7 @@ DAY_ABBR  = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 # ═════════════════════════════════════════════════════════════════════════════
 # Tab 5 — Categories Management
 # ═════════════════════════════════════════════════════════════════════════════
+@st.fragment
 def tab_categories():
     if "brands_working" not in st.session_state:
         st.session_state.brands_working = load_brands_db()
@@ -975,7 +976,7 @@ def tab_categories():
                 if st.button("🗑️", key=f"del_{gen}_{cat}",
                              use_container_width=True, help=f"Remove '{cat}'"):
                     del st.session_state.cats_working[cat]
-                    st.rerun()
+                    st.rerun(scope="fragment")
 
     # ── Add new category ──────────────────────────────────────────────────────
     st.divider()
@@ -994,7 +995,7 @@ def tab_categories():
                 st.session_state.cats_working[name] = {"keywords": kws, "brands": [], "sku_types": {}}
                 for k in ("new_cat_name", "new_cat_kws"):
                     st.session_state.pop(k, None)
-                st.rerun()
+                st.rerun(scope="fragment")
             else:
                 st.warning("ใส่ชื่อ category และ keyword อย่างน้อย 1 บรรทัด")
 
@@ -1037,7 +1038,7 @@ def tab_categories():
         st.session_state.cats_gen       = gen + 1
         _git_persist("brands_db.json", "categories_db.json")
         st.success(f"Saved — {len(new_brands)} brands · {len(new_cats)} categories")
-        st.rerun()
+        st.rerun(scope="fragment")
 
     if reset_all:
         save_brands_db(dict(DEFAULT_BRANDS))
@@ -1049,7 +1050,7 @@ def tab_categories():
         st.session_state.brands_gen     = bgen + 1
         st.session_state.cats_working   = new_cats
         st.session_state.cats_gen       = gen + 1
-        st.rerun()
+        st.rerun(scope="fragment")
 
     # ══════════════════════════════════════════════════════════════════════════
     # Store Chains — separate save (clears data cache, not categorization)
@@ -1100,7 +1101,7 @@ def tab_categories():
         st.session_state.stores_gen     = sgen + 1
         _git_persist("stores_db.json")
         st.success("Saved! Store data will reload on next tab visit.")
-        st.rerun()
+        st.rerun(scope="fragment")
 
     if s_reset_clicked:
         new_chains = dict(DEFAULT_CHAIN_KEYWORDS)
@@ -1110,7 +1111,7 @@ def tab_categories():
         st.session_state.stores_working = new_chains
         st.session_state.stores_online  = new_online
         st.session_state.stores_gen     = sgen + 1
-        st.rerun()
+        st.rerun(scope="fragment")
 
     # Existing chains
     for sname in list(stores.keys()):
@@ -1143,7 +1144,7 @@ def tab_categories():
                              help=f"Delete '{sname}'"):
                     del st.session_state.stores_working[sname]
                     st.session_state.stores_online.discard(sname)
-                    st.rerun()
+                    st.rerun(scope="fragment")
 
     # Add new chain
     st.divider()
@@ -1168,7 +1169,7 @@ def tab_categories():
                     st.session_state.stores_online.add(sn)
                 for k in ("new_store_name", "new_store_kws", "new_store_online"):
                     st.session_state.pop(k, None)
-                st.rerun()
+                st.rerun(scope="fragment")
             else:
                 st.warning("Fill in both chain name and at least one keyword.")
 
@@ -1200,13 +1201,13 @@ def tab_categories():
         st.session_state.ignore_working = new_ig
         _git_persist("ignore_db.json")
         st.success(f"Saved {len(new_ig)} ignore keywords — data will reload on next visit")
-        st.rerun()
+        st.rerun(scope="fragment")
 
     if ig_reset:
         save_ignore_db(list(DEFAULT_IGNORE_KEYWORDS))
         get_all_data.clear()
         st.session_state.ignore_working = list(DEFAULT_IGNORE_KEYWORDS)
-        st.rerun()
+        st.rerun(scope="fragment")
 
     # ══════════════════════════════════════════════════════════════════════════
     # Category Affinity Segments
@@ -1267,7 +1268,7 @@ def tab_categories():
         st.session_state.segs_gen     = segs_gen + 1
         _git_persist("segments_db.json")
         st.success(f"Saved — {len(new_segs)} rows ({len({r['segment'] for r in new_segs})} segments)")
-        st.rerun()
+        st.rerun(scope="fragment")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
