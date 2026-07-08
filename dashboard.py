@@ -1283,6 +1283,29 @@ st.markdown(
 
 tabs = st.tabs(["📊 Overview", "🛒 Products", "👥 Customers RFM", "🎯 Segments", "⚙️ Categories"])
 
+# Persist active tab across Streamlit reruns via sessionStorage
+st.components.v1.html("""<script>
+(function(){
+    var d=window.parent.document, K='__oct_tab';
+    function run(){
+        var tabs=d.querySelectorAll('[data-baseweb="tab"]');
+        if(!tabs.length){ setTimeout(run,80); return; }
+        // restore
+        var s=parseInt(sessionStorage.getItem(K)||'0',10);
+        if(s>0 && tabs[s] && tabs[s].getAttribute('aria-selected')!=='true'){
+            tabs[s].click();
+        }
+        // save on click (attach once)
+        [].forEach.call(tabs,function(t,i){
+            if(!t._oct){ t._oct=true;
+                t.addEventListener('click',function(){ sessionStorage.setItem(K,i); });
+            }
+        });
+    }
+    setTimeout(run,150);
+})();
+</script>""", height=0)
+
 with tabs[0]:
     tab_overview()
 with tabs[1]:
