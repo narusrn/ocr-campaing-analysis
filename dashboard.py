@@ -887,388 +887,380 @@ DAY_ABBR  = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 # Tab 5 — Categories Management
 # ═════════════════════════════════════════════════════════════════════════════
 def tab_categories():
-    if "brands_working" not in st.session_state:
-        st.session_state.brands_working = load_brands_db()
-    if "brands_gen" not in st.session_state:
-        st.session_state.brands_gen = 0
-    if "cats_working" not in st.session_state:
-        st.session_state.cats_working = load_categories_db()
-    if "cats_gen" not in st.session_state:
-        st.session_state.cats_gen = 0
+    from segment_helper import load_category_segments, save_category_segments  # noqa: PLC0415
 
-    brands = st.session_state.brands_working
-    bgen   = st.session_state.brands_gen
-    cats   = st.session_state.cats_working
-    gen    = st.session_state.cats_gen
-
-    # ── ONE save bar for Brands + Categories ─────────────────────────────────
-    total_kw = sum(len(v["keywords"]) if isinstance(v, dict) else len(v) for v in cats.values())
-    col_info, col_save, col_reset = st.columns([4, 1, 1])
-    with col_info:
-        st.caption(f"{len(brands)} brands · {len(cats)} categories · {total_kw} keywords รวม")
-    with col_save:
-        save_all = st.button("💾 Save All", type="primary", use_container_width=True)
-    with col_reset:
-        reset_all = st.button("↺ Reset", use_container_width=True)
-
-    # ── Brands table ─────────────────────────────────────────────────────────
-    section("BRANDS")
-    st.caption("keyword สำหรับระบุ brand จากชื่อสินค้า · ใช้ | คั่น · เพิ่ม brand ใหม่กด + ท้ายตาราง")
-    brands_df = pd.DataFrame(
-        [{"Brand": k, "Keywords": "|".join(v)} for k, v in brands.items()]
-    )
-    edited_brands = st.data_editor(
-        brands_df, use_container_width=True, hide_index=True, num_rows="dynamic",
-        column_config={
-            "Brand":    st.column_config.TextColumn("Brand",    width="small"),
-            "Keywords": st.column_config.TextColumn("Keywords (| คั่น)", width="large"),
-        },
-        key=f"brand_editor_{bgen}",
-    )
-
-    st.divider()
-
-    # ── Categories ───────────────────────────────────────────────────────────
-    section("CATEGORIES")
-    render_legend()
-
-    for cat in list(cats.keys()):
-        cd          = cats[cat] if isinstance(cats[cat], dict) else {"keywords": cats[cat], "brands": [], "sku_types": {}}
-        kws_list    = cd.get("keywords", [])
-        brands_list = cd.get("brands", [])
-        sku_dict    = cd.get("sku_types", {})
-        color = CAT_COLORS.get(cat, "#8b9dc3")
-        dot   = (f'<span style="display:inline-block;width:10px;height:10px;'
-                 f'border-radius:50%;background:{color};margin-right:6px"></span>')
-        label = f"{cat}  —  {len(kws_list)} kw · {len(brands_list)} brands · {len(sku_dict)} SKU"
-
-        with st.expander(label, expanded=False):
-            st.markdown(dot + f"**{cat}**", unsafe_allow_html=True)
-            c_kw, c_sku, c_del = st.columns([2, 2, 1])
-            with c_kw:
-                st.text_area(
-                    "Keywords",
-                    value="\n".join(kws_list),
-                    height=160,
-                    key=f"ta_kw_{gen}_{cat}",
-                    placeholder="one keyword per line…",
-                    help="ML ใช้ keyword เหล่านี้จัด category · keyword ตรงตัว = แม่นกว่า",
-                )
-                st.multiselect(
-                    "Brands ที่อยู่ใน category นี้",
-                    options=sorted(brands.keys()),
-                    default=[b for b in brands_list if b in brands],
-                    key=f"ms_br_{gen}_{cat}",
-                )
-            with c_sku:
-                sku_default = "\n".join(f"{k} = {'|'.join(v)}" for k, v in sku_dict.items())
-                st.text_area(
-                    "SKU Types",
-                    value=sku_default,
-                    height=200,
-                    key=f"ta_sk_{gen}_{cat}",
-                    placeholder="ผงซักฟอก = powder|ผง|บรีส\nน้ำยาซักผ้า = liquid|เหลว",
-                    help="แต่ละบรรทัด: ชื่อ SKU = keyword1|keyword2",
-                )
-            with c_del:
-                st.markdown("<br>" * 4, unsafe_allow_html=True)
-                if st.button("🗑️", key=f"del_{gen}_{cat}",
-                             use_container_width=True, help=f"Remove '{cat}'"):
-                    del st.session_state.cats_working[cat]
-                    st.rerun()
-
-    # ── Add new category ──────────────────────────────────────────────────────
-    st.divider()
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col1:
-        new_name = st.text_input("ชื่อ category ใหม่", key="new_cat_name", placeholder="เช่น ยา/สุขภาพ")
-    with col2:
-        new_kws = st.text_area("Keywords (one per line)", key="new_cat_kws",
-                               height=90, placeholder="panadol\nยาพาราเซตามอล\nยาแก้ปวด")
-    with col3:
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        if st.button("➕ Add Category", use_container_width=True, key="add_cat_btn"):
-            name = new_name.strip()
-            kws  = [k.strip() for k in new_kws.splitlines() if k.strip()]
-            if name and kws:
-                st.session_state.cats_working[name] = {"keywords": kws, "brands": [], "sku_types": {}}
-                for k in ("new_cat_name", "new_cat_kws"):
-                    st.session_state.pop(k, None)
-                st.rerun()
-            else:
-                st.warning("ใส่ชื่อ category และ keyword อย่างน้อย 1 บรรทัด")
-
-    # ── Save / Reset handlers ─────────────────────────────────────────────────
-    if save_all:
-        new_brands: dict = {}
-        for _, row in edited_brands.iterrows():
-            bname = str(row.get("Brand", "") or "").strip()
-            bkws  = [k.strip() for k in str(row.get("Keywords", "") or "").split("|") if k.strip()]
-            if bname and bkws:
-                new_brands[bname] = bkws
-        save_brands_db(new_brands)
-
-        new_cats: dict = {}
-        for cat in list(cats.keys()):
-            cd     = cats[cat] if isinstance(cats[cat], dict) else {}
-            raw_kw = st.session_state.get(f"ta_kw_{gen}_{cat}", "\n".join(cd.get("keywords", [])))
-            kws    = [k.strip() for k in raw_kw.splitlines() if k.strip()]
-            if not kws:
-                continue
-            sel_br  = st.session_state.get(f"ms_br_{gen}_{cat}", cd.get("brands", []))
-            raw_sk  = st.session_state.get(f"ta_sk_{gen}_{cat}", "")
-            sku_dict = {}
-            for line in raw_sk.splitlines():
-                if "=" not in line:
-                    continue
-                sname, _, skws_raw = line.partition("=")
-                sname = sname.strip()
-                skws  = [k.strip() for k in skws_raw.split("|") if k.strip()]
-                if sname and skws:
-                    sku_dict[sname] = skws
-            new_cats[cat] = {"keywords": kws, "brands": sel_br, "sku_types": sku_dict}
-        save_categories_db(new_cats)
-        reset_cache()
-        get_categorized.clear()
-
-        st.session_state.brands_working = new_brands
-        st.session_state.brands_gen     = bgen + 1
-        st.session_state.cats_working   = new_cats
-        st.session_state.cats_gen       = gen + 1
-        _git_persist("brands_db.json", "categories_db.json")
-        st.success(f"Saved — {len(new_brands)} brands · {len(new_cats)} categories")
-        st.rerun()
-
-    if reset_all:
-        save_brands_db(dict(DEFAULT_BRANDS))
-        new_cats = dict(DEFAULT_CATEGORIES)
-        save_categories_db(new_cats)
-        reset_cache()
-        get_categorized.clear()
-        st.session_state.brands_working = dict(DEFAULT_BRANDS)
-        st.session_state.brands_gen     = bgen + 1
-        st.session_state.cats_working   = new_cats
-        st.session_state.cats_gen       = gen + 1
-        st.rerun()
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # Store Chains — separate save (clears data cache, not categorization)
-    # ══════════════════════════════════════════════════════════════════════════
-    st.divider()
-
+    for key, default in [
+        ("brands_working", load_brands_db),
+        ("cats_working",   load_categories_db),
+    ]:
+        if key not in st.session_state:
+            st.session_state[key] = default()
+    for key in ("brands_gen", "cats_gen", "stores_gen", "segs_gen"):
+        if key not in st.session_state:
+            st.session_state[key] = 0
     if "stores_working" not in st.session_state:
-        _chains, _online = load_stores_db()
-        st.session_state.stores_working = _chains
-        st.session_state.stores_online  = _online
-    if "stores_gen" not in st.session_state:
-        st.session_state.stores_gen = 0
-
-    stores   = st.session_state.stores_working
-    s_online = st.session_state.stores_online
-    sgen     = st.session_state.stores_gen
-
-    # Action bar
-    section("STORE CHAINS")
-    col_info, col_save, col_reset = st.columns([3, 1, 1])
-    with col_info:
-        n_online = sum(1 for n in stores if n in s_online)
-        st.caption(
-            f"{len(stores)} chains · "
-            f"{sum(len(v) for v in stores.values())} keywords · "
-            f"{n_online} online / {len(stores)-n_online} offline"
-        )
-    with col_save:
-        s_save_clicked = st.button("💾 Save & Apply", type="primary",
-                                   key="store_save", use_container_width=True)
-    with col_reset:
-        s_reset_clicked = st.button("↺ Defaults", key="store_reset", use_container_width=True)
-
-    if s_save_clicked:
-        new_chains: dict = {}
-        new_online: set  = set()
-        for sname in list(stores.keys()):
-            raw = st.session_state.get(f"sta_{sgen}_{sname}", "\n".join(stores[sname]))
-            kws = [k.strip() for k in raw.splitlines() if k.strip()]
-            if kws:
-                new_chains[sname] = kws
-                if st.session_state.get(f"sonl_{sgen}_{sname}", sname in s_online):
-                    new_online.add(sname)
-        save_stores_db(new_chains, new_online)
-        get_all_data.clear()
-        st.session_state.stores_working = new_chains
-        st.session_state.stores_online  = new_online
-        st.session_state.stores_gen     = sgen + 1
-        _git_persist("stores_db.json")
-        st.success("Saved! Store data will reload on next tab visit.")
-        st.rerun()
-
-    if s_reset_clicked:
-        new_chains = dict(DEFAULT_CHAIN_KEYWORDS)
-        new_online = set(DEFAULT_ONLINE_CHAINS)
-        save_stores_db(new_chains, new_online)
-        get_all_data.clear()
-        st.session_state.stores_working = new_chains
-        st.session_state.stores_online  = new_online
-        st.session_state.stores_gen     = sgen + 1
-        st.rerun()
-
-    # Existing chains
-    for sname in list(stores.keys()):
-        is_online = sname in s_online
-        badge     = "🌐 Online" if is_online else "🏪 Offline"
-        with st.expander(f"**{sname}**  ·  {badge}  —  {len(stores[sname])} keywords"):
-            col_ta, col_right = st.columns([5, 1])
-            with col_ta:
-                st.text_area(
-                    "keywords",
-                    value="\n".join(stores[sname]),
-                    height=max(80, min(260, len(stores[sname]) * 24)),
-                    key=f"sta_{sgen}_{sname}",
-                    label_visibility="collapsed",
-                    placeholder="one keyword or regex per line…",
-                    help=(
-                        "รองรับ Regex เต็มรูปแบบ (case-insensitive) · ตัวอย่าง:\n"
-                        "• ข้อความธรรมดา → lotus\n"
-                        "• ต้องมีทั้งสองคำ (AND) → (?=.*ซี)(?=.*พี)\n"
-                        "• คำใดคำหนึ่ง (OR) → lotus|โลตัส\n"
-                        "• ตามลำดับ → ซี.*พี\n"
-                        "• ขึ้นต้นด้วย → ^7-eleven"
-                    ),
-                )
-            with col_right:
-                st.checkbox("Online", value=is_online, key=f"sonl_{sgen}_{sname}",
-                            help="Mark as online channel")
-                st.markdown("<br>" * 2, unsafe_allow_html=True)
-                if st.button("🗑️", key=f"sdel_{sgen}_{sname}", use_container_width=True,
-                             help=f"Delete '{sname}'"):
-                    del st.session_state.stores_working[sname]
-                    st.session_state.stores_online.discard(sname)
-                    st.rerun()
-
-    # Add new chain
-    st.divider()
-    section("ADD NEW STORE CHAIN")
-    col1, col2, col3, col4 = st.columns([1, 2, 1, 1])
-    with col1:
-        new_sname = st.text_input("Chain name", key="new_store_name", placeholder="e.g. Makro")
-    with col2:
-        new_skws = st.text_area("Keywords / Regex (one per line)", key="new_store_kws",
-                                height=80, placeholder="makro\nแม็คโคร\n(?=.*ซี)(?=.*พี)")
-    with col3:
-        st.markdown("<br>", unsafe_allow_html=True)
-        new_sonline = st.checkbox("Online channel", key="new_store_online")
-    with col4:
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        if st.button("➕ Add", key="add_store_btn", use_container_width=True):
-            sn  = new_sname.strip()
-            kws = [k.strip() for k in new_skws.splitlines() if k.strip()]
-            if sn and kws:
-                st.session_state.stores_working[sn] = kws
-                if new_sonline:
-                    st.session_state.stores_online.add(sn)
-                for k in ("new_store_name", "new_store_kws", "new_store_online"):
-                    st.session_state.pop(k, None)
-                st.rerun()
-            else:
-                st.warning("Fill in both chain name and at least one keyword.")
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # Ignore Keywords — กรอง item_name ออกจาก pipeline ทั้งหมด
-    # ══════════════════════════════════════════════════════════════════════════
-    st.divider()
-    section("IGNORE ITEM NAMES")
-
+        _c, _o = load_stores_db()
+        st.session_state.stores_working = _c
+        st.session_state.stores_online  = _o
+    if "segs_working" not in st.session_state:
+        st.session_state.segs_working = load_category_segments()
     if "ignore_working" not in st.session_state:
         st.session_state.ignore_working = load_ignore_db()
 
-    col_info, col_save, col_reset = st.columns([4, 1, 1])
-    with col_info:
-        st.caption("item_name ที่มี keyword เหล่านี้จะถูกกรองออกก่อนเข้า pipeline ทั้งหมด · ใช้ | คั่น")
-    with col_save:
-        ig_save = st.button("💾 Save & Apply", type="primary", key="ig_save", use_container_width=True)
-    with col_reset:
-        ig_reset = st.button("↺ Defaults", key="ig_reset", use_container_width=True)
-
-    ig_val = " | ".join(st.session_state.ignore_working)
-    ig_edited = st.text_input("Keywords (| คั่น)", value=ig_val, key="ig_input",
-                              placeholder="ส่วนลด | discount | ธนาคาร | ทรูมันนี่")
-
-    if ig_save:
-        new_ig = [k.strip() for k in ig_edited.split("|") if k.strip()]
-        save_ignore_db(new_ig)
-        get_all_data.clear()
-        st.session_state.ignore_working = new_ig
-        _git_persist("ignore_db.json")
-        st.success(f"Saved {len(new_ig)} ignore keywords — data will reload on next visit")
-        st.rerun()
-
-    if ig_reset:
-        save_ignore_db(list(DEFAULT_IGNORE_KEYWORDS))
-        get_all_data.clear()
-        st.session_state.ignore_working = list(DEFAULT_IGNORE_KEYWORDS)
-        st.rerun()
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # Category Affinity Segments
-    # ══════════════════════════════════════════════════════════════════════════
-    st.divider()
-    from segment_helper import load_category_segments, save_category_segments  # noqa: PLC0415
-
-    if "segs_working" not in st.session_state:
-        st.session_state.segs_working = load_category_segments()
-    if "segs_gen" not in st.session_state:
-        st.session_state.segs_gen = 0
-
+    brands   = st.session_state.brands_working
+    bgen     = st.session_state.brands_gen
+    cats     = st.session_state.cats_working
+    gen      = st.session_state.cats_gen
+    stores   = st.session_state.stores_working
+    s_online = st.session_state.stores_online
+    sgen     = st.session_state.stores_gen
     segs_cfg = st.session_state.segs_working
     segs_gen = st.session_state.segs_gen
 
-    col_info, col_save = st.columns([5, 1])
-    with col_info:
-        section("CATEGORY AFFINITY SEGMENTS")
-        st.caption("กำหนด segment name → category + SKU Type ที่ต้องการ · SKU Types ว่าง = ใช้ทั้ง category")
-    with col_save:
-        st.markdown("<br>", unsafe_allow_html=True)
-        seg_save = st.button("💾 Save", type="primary", key="seg_save", use_container_width=True)
+    inner = st.tabs(["🏷️ Brands", "📦 Categories", "🏪 Store Chains", "🎯 Segments", "🚫 Ignore"])
 
-    all_sku_opts = [""] + sorted({
-        sku
-        for cd in cats.values() if isinstance(cd, dict)
-        for sku in cd.get("sku_types", {}).keys()
-    })
-    segs_df = pd.DataFrame(segs_cfg if segs_cfg else [{"segment": "", "category": "", "sku_type": ""}])
-    for col in ("segment", "category", "sku_type"):
-        if col not in segs_df.columns:
-            segs_df[col] = ""
+    # ══════════════════════════════════════════════════════════════════════════
+    # Brands
+    # ══════════════════════════════════════════════════════════════════════════
+    with inner[0]:
+        c1, c2, c3 = st.columns([4, 1, 1])
+        with c1:
+            st.caption(f"{len(brands)} brands · keyword ระบุ brand จากชื่อสินค้า · คั่นด้วย |")
+        with c2:
+            brands_save = st.button("💾 Save", type="primary", key="brands_save", use_container_width=True)
+        with c3:
+            brands_reset = st.button("↺ Reset", key="brands_reset", use_container_width=True)
 
-    edited_segs = st.data_editor(
-        segs_df, use_container_width=True, hide_index=True, num_rows="dynamic",
-        column_config={
-            "segment":  st.column_config.TextColumn("Segment Name", width="medium"),
-            "category": st.column_config.SelectboxColumn(
-                "Category", options=list(cats.keys()), width="medium"
-            ),
-            "sku_type": st.column_config.SelectboxColumn(
-                "SKU Type (ว่าง = ทั้ง category)", options=all_sku_opts, width="medium"
-            ),
-        },
-        key=f"seg_editor_{segs_gen}",
-    )
+        edited_brands = st.data_editor(
+            pd.DataFrame([{"Brand": k, "Keywords (| คั่น)": "|".join(v)} for k, v in brands.items()]),
+            use_container_width=True, hide_index=True, num_rows="dynamic",
+            column_config={
+                "Brand":             st.column_config.TextColumn(width="small"),
+                "Keywords (| คั่น)": st.column_config.TextColumn(width="large"),
+            },
+            key=f"brand_editor_{bgen}",
+        )
 
-    if seg_save:
-        new_segs: list = []
-        for _, row in edited_segs.iterrows():
-            sname    = str(row.get("segment",  "") or "").strip()
-            cat_name = str(row.get("category", "") or "").strip()
-            sku      = str(row.get("sku_type", "") or "").strip()
-            if sname and cat_name:
-                new_segs.append({"segment": sname, "category": cat_name, "sku_type": sku})
-        save_category_segments(new_segs)
-        st.session_state.segs_working = new_segs
-        st.session_state.segs_gen     = segs_gen + 1
-        _git_persist("segments_db.json")
-        st.success(f"Saved — {len(new_segs)} rows ({len({r['segment'] for r in new_segs})} segments)")
-        st.rerun()
+        if brands_save:
+            new_brands: dict = {}
+            for _, row in edited_brands.iterrows():
+                bn = str(row.get("Brand", "") or "").strip()
+                bk = [k.strip() for k in str(row.get("Keywords (| คั่น)", "") or "").split("|") if k.strip()]
+                if bn and bk:
+                    new_brands[bn] = bk
+            save_brands_db(new_brands)
+            reset_cache()
+            get_categorized.clear()
+            st.session_state.brands_working = new_brands
+            st.session_state.brands_gen = bgen + 1
+            _git_persist("brands_db.json")
+            st.success(f"Saved {len(new_brands)} brands")
+            st.rerun()
 
+        if brands_reset:
+            new_brands = dict(DEFAULT_BRANDS)
+            save_brands_db(new_brands)
+            reset_cache()
+            get_categorized.clear()
+            st.session_state.brands_working = new_brands
+            st.session_state.brands_gen = bgen + 1
+            st.rerun()
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # Categories
+    # ══════════════════════════════════════════════════════════════════════════
+    with inner[1]:
+        render_legend()
+        c1, c2, c3, c4 = st.columns([3, 1, 1, 1])
+        with c1:
+            sel_cat = st.selectbox(
+                "Category", list(cats.keys()), key="cat_sel_box", label_visibility="collapsed"
+            )
+        with c2:
+            cat_save = st.button("💾 Save", type="primary", key="cat_save", use_container_width=True)
+        with c3:
+            cat_reload = st.button("🔄 Reload", key="cat_reload", use_container_width=True,
+                                   help="ล้าง classification cache")
+        with c4:
+            cats_reset = st.button("↺ Reset All", key="cats_reset", use_container_width=True)
+
+        if sel_cat:
+            cd          = cats[sel_cat] if isinstance(cats[sel_cat], dict) else {"keywords": cats[sel_cat], "brands": [], "sku_types": {}}
+            kws_list    = cd.get("keywords", [])
+            brands_list = cd.get("brands", [])
+            sku_dict    = cd.get("sku_types", {})
+            color = CAT_COLORS.get(sel_cat, "#8b9dc3")
+            dot   = (f'<span style="display:inline-block;width:10px;height:10px;'
+                     f'border-radius:50%;background:{color};margin-right:6px"></span>')
+            st.markdown(
+                dot + f"**{sel_cat}** &nbsp;·&nbsp; {len(kws_list)} keywords · {len(sku_dict)} SKU types",
+                unsafe_allow_html=True,
+            )
+
+            c_kw, c_sku = st.columns(2)
+            with c_kw:
+                st.caption("Keywords — ML ใช้จัด category")
+                kw_ret = st.data_editor(
+                    pd.DataFrame({"Keyword": kws_list}),
+                    num_rows="dynamic", use_container_width=True, hide_index=True,
+                    key=f"kw_{gen}_{sel_cat}",
+                )
+                sel_br = st.multiselect(
+                    "Brands ใน category นี้",
+                    options=sorted(brands.keys()),
+                    default=[b for b in brands_list if b in brands],
+                    key=f"ms_br_{gen}_{sel_cat}",
+                )
+
+            with c_sku:
+                st.caption("SKU Types — sub-category สินค้า")
+                sku_ret = st.data_editor(
+                    pd.DataFrame([{"SKU Name": k, "Keywords (| คั่น)": "|".join(v)}
+                                  for k, v in sku_dict.items()]),
+                    num_rows="dynamic", use_container_width=True, hide_index=True,
+                    column_config={
+                        "SKU Name":          st.column_config.TextColumn(width="small"),
+                        "Keywords (| คั่น)": st.column_config.TextColumn(width="large"),
+                    },
+                    key=f"sk_{gen}_{sel_cat}",
+                )
+
+            c_del, _ = st.columns([1, 5])
+            with c_del:
+                if st.button(f"🗑️ ลบ '{sel_cat}'", key=f"del_cat_{gen}_{sel_cat}"):
+                    del st.session_state.cats_working[sel_cat]
+                    st.rerun()
+
+            if cat_save:
+                kws  = [str(r.get("Keyword", "") or "").strip() for _, r in kw_ret.iterrows()
+                        if str(r.get("Keyword", "") or "").strip()]
+                skud = {}
+                for _, r in sku_ret.iterrows():
+                    sn = str(r.get("SKU Name", "") or "").strip()
+                    sv = [k.strip() for k in str(r.get("Keywords (| คั่น)", "") or "").split("|") if k.strip()]
+                    if sn and sv:
+                        skud[sn] = sv
+                if not kws:
+                    st.warning("ต้องมีอย่างน้อย 1 keyword")
+                else:
+                    st.session_state.cats_working[sel_cat] = {
+                        "keywords": kws, "brands": sel_br, "sku_types": skud
+                    }
+                    save_categories_db(st.session_state.cats_working)
+                    reset_cache()
+                    get_categorized.clear()
+                    st.session_state.cats_gen = gen + 1
+                    _git_persist("categories_db.json")
+                    st.success(f"Saved '{sel_cat}'")
+                    st.rerun()
+
+        if cat_reload:
+            reset_cache()
+            get_categorized.clear()
+            st.success("Cache cleared — classification will rerun on next visit")
+            st.rerun()
+
+        if cats_reset:
+            new_cats = dict(DEFAULT_CATEGORIES)
+            save_categories_db(new_cats)
+            reset_cache()
+            get_categorized.clear()
+            st.session_state.cats_working = new_cats
+            st.session_state.cats_gen = gen + 1
+            st.rerun()
+
+        st.divider()
+        st.caption("➕ เพิ่ม category ใหม่")
+        c1, c2, c3 = st.columns([1, 2, 1])
+        with c1:
+            new_name = st.text_input("ชื่อ category", key="new_cat_name", placeholder="เช่น ยา/สุขภาพ")
+        with c2:
+            new_kws = st.text_area("Keywords (one per line)", key="new_cat_kws",
+                                   height=80, placeholder="panadol\nยาพาราเซตามอล")
+        with c3:
+            st.markdown("<br><br>", unsafe_allow_html=True)
+            if st.button("➕ Add", key="add_cat_btn", use_container_width=True):
+                name = new_name.strip()
+                kws  = [k.strip() for k in new_kws.splitlines() if k.strip()]
+                if name and kws:
+                    st.session_state.cats_working[name] = {"keywords": kws, "brands": [], "sku_types": {}}
+                    for k in ("new_cat_name", "new_cat_kws"):
+                        st.session_state.pop(k, None)
+                    st.rerun()
+                else:
+                    st.warning("ใส่ชื่อ category และ keyword อย่างน้อย 1 บรรทัด")
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # Store Chains
+    # ══════════════════════════════════════════════════════════════════════════
+    with inner[2]:
+        c1, c2, c3 = st.columns([3, 1, 1])
+        with c1:
+            n_online = sum(1 for n in stores if n in s_online)
+            st.caption(f"{len(stores)} chains · {n_online} online / {len(stores)-n_online} offline")
+        with c2:
+            chain_save = st.button("💾 Save", type="primary", key="chain_save", use_container_width=True)
+        with c3:
+            chain_reset = st.button("↺ Defaults", key="chain_reset", use_container_width=True)
+
+        sel_chain = st.selectbox(
+            "Store Chain", list(stores.keys()), key="chain_sel_box", label_visibility="collapsed"
+        )
+
+        if sel_chain:
+            is_online = sel_chain in s_online
+            c_chk, _ = st.columns([2, 4])
+            with c_chk:
+                new_is_online = st.checkbox("🌐 Online channel", value=is_online,
+                                            key=f"sonl_{sgen}_{sel_chain}")
+            chain_kw_ret = st.data_editor(
+                pd.DataFrame({"Keyword / Regex": stores[sel_chain]}),
+                num_rows="dynamic", use_container_width=True, hide_index=True,
+                key=f"sta_{sgen}_{sel_chain}",
+                column_config={"Keyword / Regex": st.column_config.TextColumn(
+                    help="รองรับ Regex · เช่น: lotus|โลตัส · (?=.*ซี)(?=.*พี) · ^7-eleven"
+                )},
+            )
+            c_del3, _ = st.columns([1, 5])
+            with c_del3:
+                if st.button(f"🗑️ ลบ '{sel_chain}'", key=f"sdel_{sgen}_{sel_chain}"):
+                    del st.session_state.stores_working[sel_chain]
+                    st.session_state.stores_online.discard(sel_chain)
+                    st.rerun()
+
+            if chain_save:
+                kws = [str(r.get("Keyword / Regex", "") or "").strip()
+                       for _, r in chain_kw_ret.iterrows()
+                       if str(r.get("Keyword / Regex", "") or "").strip()]
+                if kws:
+                    st.session_state.stores_working[sel_chain] = kws
+                    if new_is_online:
+                        st.session_state.stores_online.add(sel_chain)
+                    else:
+                        st.session_state.stores_online.discard(sel_chain)
+                    save_stores_db(st.session_state.stores_working, st.session_state.stores_online)
+                    get_all_data.clear()
+                    st.session_state.stores_gen = sgen + 1
+                    _git_persist("stores_db.json")
+                    st.success(f"Saved '{sel_chain}'")
+                    st.rerun()
+
+        if chain_reset:
+            new_chains = dict(DEFAULT_CHAIN_KEYWORDS)
+            new_online = set(DEFAULT_ONLINE_CHAINS)
+            save_stores_db(new_chains, new_online)
+            get_all_data.clear()
+            st.session_state.stores_working = new_chains
+            st.session_state.stores_online  = new_online
+            st.session_state.stores_gen     = sgen + 1
+            st.rerun()
+
+        st.divider()
+        st.caption("➕ เพิ่ม store chain ใหม่")
+        c1, c2, c3, c4 = st.columns([1, 2, 1, 1])
+        with c1:
+            new_sname = st.text_input("Chain name", key="new_store_name", placeholder="e.g. Makro")
+        with c2:
+            new_skws = st.text_area("Keywords (one per line)", key="new_store_kws",
+                                    height=80, placeholder="makro\nแม็คโคร")
+        with c3:
+            st.markdown("<br>", unsafe_allow_html=True)
+            new_sonline = st.checkbox("Online", key="new_store_online")
+        with c4:
+            st.markdown("<br><br>", unsafe_allow_html=True)
+            if st.button("➕ Add", key="add_store_btn", use_container_width=True):
+                sn  = new_sname.strip()
+                kws = [k.strip() for k in new_skws.splitlines() if k.strip()]
+                if sn and kws:
+                    st.session_state.stores_working[sn] = kws
+                    if new_sonline:
+                        st.session_state.stores_online.add(sn)
+                    for k in ("new_store_name", "new_store_kws", "new_store_online"):
+                        st.session_state.pop(k, None)
+                    st.rerun()
+                else:
+                    st.warning("ใส่ชื่อ chain และ keyword")
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # Segments
+    # ══════════════════════════════════════════════════════════════════════════
+    with inner[3]:
+        c1, c2 = st.columns([5, 1])
+        with c1:
+            n_unique = len({r["segment"] for r in segs_cfg})
+            st.caption(f"{n_unique} segments · {len(segs_cfg)} rules · SKU ว่าง = ทั้ง category")
+        with c2:
+            seg_save = st.button("💾 Save", type="primary", key="seg_save", use_container_width=True)
+
+        all_sku_opts = [""] + sorted({
+            sku
+            for cd in cats.values() if isinstance(cd, dict)
+            for sku in cd.get("sku_types", {}).keys()
+        })
+        segs_df = pd.DataFrame(segs_cfg or [{"segment": "", "category": "", "sku_type": ""}])
+        for col in ("segment", "category", "sku_type"):
+            if col not in segs_df.columns:
+                segs_df[col] = ""
+
+        edited_segs = st.data_editor(
+            segs_df, use_container_width=True, hide_index=True, num_rows="dynamic",
+            column_config={
+                "segment":  st.column_config.TextColumn("Segment Name", width="medium"),
+                "category": st.column_config.SelectboxColumn(
+                    "Category", options=list(cats.keys()), width="medium"
+                ),
+                "sku_type": st.column_config.SelectboxColumn(
+                    "SKU Type (ว่าง = ทั้ง category)", options=all_sku_opts, width="medium"
+                ),
+            },
+            key=f"seg_editor_{segs_gen}",
+        )
+
+        if seg_save:
+            new_segs: list = []
+            for _, row in edited_segs.iterrows():
+                sname    = str(row.get("segment",  "") or "").strip()
+                cat_name = str(row.get("category", "") or "").strip()
+                sku      = str(row.get("sku_type", "") or "").strip()
+                if sname and cat_name:
+                    new_segs.append({"segment": sname, "category": cat_name, "sku_type": sku})
+            save_category_segments(new_segs)
+            st.session_state.segs_working = new_segs
+            st.session_state.segs_gen     = segs_gen + 1
+            _git_persist("segments_db.json")
+            st.success(f"Saved — {len(new_segs)} rules ({len({r['segment'] for r in new_segs})} segments)")
+            st.rerun()
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # Ignore
+    # ══════════════════════════════════════════════════════════════════════════
+    with inner[4]:
+        c1, c2, c3 = st.columns([4, 1, 1])
+        with c1:
+            st.caption("item_name ที่มี keyword เหล่านี้จะถูกกรองออกก่อน pipeline ทั้งหมด")
+        with c2:
+            ig_save = st.button("💾 Save & Apply", type="primary", key="ig_save", use_container_width=True)
+        with c3:
+            ig_reset = st.button("↺ Defaults", key="ig_reset", use_container_width=True)
+
+        ig_val    = " | ".join(st.session_state.ignore_working)
+        ig_edited = st.text_input("Keywords (| คั่น)", value=ig_val, key="ig_input",
+                                  placeholder="ส่วนลด | discount | ธนาคาร | ทรูมันนี่")
+
+        if ig_save:
+            new_ig = [k.strip() for k in ig_edited.split("|") if k.strip()]
+            save_ignore_db(new_ig)
+            get_all_data.clear()
+            st.session_state.ignore_working = new_ig
+            _git_persist("ignore_db.json")
+            st.success(f"Saved {len(new_ig)} ignore keywords")
+            st.rerun()
+
+        if ig_reset:
+            save_ignore_db(list(DEFAULT_IGNORE_KEYWORDS))
+            get_all_data.clear()
+            st.session_state.ignore_working = list(DEFAULT_IGNORE_KEYWORDS)
+            st.rerun()
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Main
