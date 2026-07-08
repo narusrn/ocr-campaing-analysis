@@ -824,7 +824,7 @@ def tab_segments():
 
     # ── Category Affinity ─────────────────────────────────────────────────
     section("🛒 CATEGORY AFFINITY")
-    cat_names = list(load_category_segments().keys())
+    cat_names = list(dict.fromkeys(r["segment"] for r in load_category_segments()))
     nz_cat    = sorted(
         [(n, len(segs[n]["members"]), segs[n]["revenue"]) for n in cat_names if segs[n]["members"]],
         key=lambda x: x[1],
@@ -1230,42 +1230,43 @@ def tab_categories():
         st.markdown("<br>", unsafe_allow_html=True)
         seg_save = st.button("💾 Save", type="primary", key="seg_save", use_container_width=True)
 
-    segs_df = pd.DataFrame([
-        {
-            "Segment":   name,
-            "Category":  spec["category"],
-            "SKU Types": "|".join(spec["sku_types"]) if spec["sku_types"] else "",
-        }
-        for name, spec in segs_cfg.items()
-    ])
+    all_sku_opts = [""] + sorted({
+        sku
+        for cd in cats.values() if isinstance(cd, dict)
+        for sku in cd.get("sku_types", {}).keys()
+    })
+    segs_df = pd.DataFrame(segs_cfg if segs_cfg else [{"segment": "", "category": "", "sku_type": ""}])
+    for col in ("segment", "category", "sku_type"):
+        if col not in segs_df.columns:
+            segs_df[col] = ""
+
     edited_segs = st.data_editor(
         segs_df, use_container_width=True, hide_index=True, num_rows="dynamic",
         column_config={
-            "Segment":   st.column_config.TextColumn("Segment Name", width="medium"),
-            "Category":  st.column_config.SelectboxColumn(
+            "segment":  st.column_config.TextColumn("Segment Name", width="medium"),
+            "category": st.column_config.SelectboxColumn(
                 "Category", options=list(cats.keys()), width="medium"
             ),
-            "SKU Types": st.column_config.TextColumn(
-                "SKU Types (| คั่น, ว่าง = ทั้ง category)", width="large"
+            "sku_type": st.column_config.SelectboxColumn(
+                "SKU Type (ว่าง = ทั้ง category)", options=all_sku_opts, width="medium"
             ),
         },
         key=f"seg_editor_{segs_gen}",
     )
 
     if seg_save:
-        new_segs: dict = {}
+        new_segs: list = []
         for _, row in edited_segs.iterrows():
-            sname    = str(row.get("Segment",   "") or "").strip()
-            cat_name = str(row.get("Category",  "") or "").strip()
-            skus_raw = str(row.get("SKU Types", "") or "").strip()
-            skus     = [s.strip() for s in skus_raw.split("|") if s.strip()] or None
+            sname    = str(row.get("segment",  "") or "").strip()
+            cat_name = str(row.get("category", "") or "").strip()
+            sku      = str(row.get("sku_type", "") or "").strip()
             if sname and cat_name:
-                new_segs[sname] = {"category": cat_name, "sku_types": skus}
+                new_segs.append({"segment": sname, "category": cat_name, "sku_type": sku})
         save_category_segments(new_segs)
         st.session_state.segs_working = new_segs
         st.session_state.segs_gen     = segs_gen + 1
         _git_persist("segments_db.json")
-        st.success(f"Saved — {len(new_segs)} category affinity segments")
+        st.success(f"Saved — {len(new_segs)} rows ({len({r['segment'] for r in new_segs})} segments)")
         st.rerun()
 
 

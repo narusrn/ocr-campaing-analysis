@@ -1,11 +1,13 @@
-{
-  "Skincare Shopper": {"category": "สกินแคร์/บิวตี้", "sku_types": null},
-  "Hair Care Shopper": {"category": "ของใช้ในบ้าน", "sku_types": ["แชมพู", "ครีมนวดผม"]},
-  "Oral Care Shopper": {"category": "ของใช้ในบ้าน", "sku_types": ["ยาสีฟัน"]},
-  "Laundry Shopper": {"category": "ผงซักฟอก/น้ำยา", "sku_types": ["ผงซักฟอก", "น้ำยาซักผ้า"]},
-  "Fabric Care Shopper": {"category": "ผงซักฟอก/น้ำยา", "sku_types": ["น้ำยาปรับผ้านุ่ม"]},
-  "Dishwash Shopper": {"category": "ผงซักฟอก/น้ำยา", "sku_types": ["น้ำยาล้างจาน"]},
-  "Snack Shopper": {"category": "ขนม/ของกินเล่น", "sku_types": null},
-  "Beverage Shopper": {"category": "เครื่องดื่ม", "sku_types": null},
-  "Ready to Eat Shopper": {"category": "อาหารสำเร็จรูป", "sku_types": null}
-}
+[
+  {"segment": "Skincare Shopper",     "category": "สกินแคร์/บิวตี้",  "sku_type": ""},
+  {"segment": "Hair Care Shopper",    "category": "ของใช้ในบ้าน",      "sku_type": "แชมพู"},
+  {"segment": "Hair Care Shopper",    "category": "ของใช้ในบ้าน",      "sku_type": "ครีมนวดผม"},
+  {"segment": "Oral Care Shopper",    "category": "ของใช้ในบ้าน",      "sku_type": "ยาสีฟัน"},
+  {"segment": "Laundry Shopper",      "category": "ผงซักฟอก/น้ำยา",   "sku_type": "ผงซักฟอก"},
+  {"segment": "Laundry Shopper",      "category": "ผงซักฟอก/น้ำยา",   "sku_type": "น้ำยาซักผ้า"},
+  {"segment": "Fabric Care Shopper",  "category": "ผงซักฟอก/น้ำยา",   "sku_type": "น้ำยาปรับผ้านุ่ม"},
+  {"segment": "Dishwash Shopper",     "category": "ผงซักฟอก/น้ำยา",   "sku_type": "น้ำยาล้างจาน"},
+  {"segment": "Snack Shopper",        "category": "ขนม/ของกินเล่น",    "sku_type": ""},
+  {"segment": "Beverage Shopper",     "category": "เครื่องดื่ม",       "sku_type": ""},
+  {"segment": "Ready to Eat Shopper", "category": "อาหารสำเร็จรูป",    "sku_type": ""}
+]
