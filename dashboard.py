@@ -902,7 +902,7 @@ def tab_categories():
         _c, _o = load_stores_db()
         st.session_state.stores_working = _c
         st.session_state.stores_online  = _o
-    if "segs_working" not in st.session_state:
+    if "segs_working" not in st.session_state or not isinstance(st.session_state.segs_working, list):
         st.session_state.segs_working = load_category_segments()
     if "ignore_working" not in st.session_state:
         st.session_state.ignore_working = load_ignore_db()
