@@ -129,20 +129,21 @@ button, input, textarea, select, label {
 
 /* ── KPI cards ────────────────────────────────────────────────────── */
 .kpi-card {
-    border-radius: 16px;
-    padding: 20px 22px;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 18px 22px;
     margin-bottom: 12px;
-    box-shadow: rgba(0,0,0,0.13) 0px 4px 18px;
+    border: 1px solid #E4E7ED;
+    box-shadow: 0px 2px 4px -2px #0000000f, 0px 4px 8px -2px #0000001a;
     transition: transform 0.18s ease, box-shadow 0.18s ease;
-    display: flex; flex-direction: column; gap: 4px;
 }
 .kpi-card:hover {
     transform: translateY(-2px);
-    box-shadow: rgba(0,0,0,0.2) 0px 8px 24px;
+    box-shadow: 0px 4px 6px -2px #00000008, 0px 12px 16px -4px #00000014;
 }
-.kpi-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-.kpi-value { font-size: 28px; font-weight: 700; line-height: 1.2; }
-.kpi-sub   { font-size: 12px; margin-top: 2px; }
+.kpi-label { color: #3362B0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.kpi-value { color: #182B45; font-size: 28px; font-weight: 700; line-height: 1.2; }
+.kpi-sub   { color: #7C8DA0; font-size: 12px; margin-top: 4px; }
 
 /* ── Section titles ───────────────────────────────────────────────── */
 .section-title {
@@ -273,12 +274,12 @@ hr {
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-def kpi(label, value, sub="", color=GRADIENTS[0]):
+def kpi(label, value, sub="", color="#0064F0"):
     st.markdown(
-        f'<div class="kpi-card" style="background:{color}">'
-        f'<div class="kpi-label" style="color:rgba(255,255,255,0.82)">{label}</div>'
-        f'<div class="kpi-value" style="color:#ffffff">{value}</div>'
-        f'<div class="kpi-sub" style="color:rgba(255,255,255,0.72)">{sub}</div></div>',
+        f'<div class="kpi-card" style="border-left:4px solid {color}">'
+        f'<div class="kpi-label">{label}</div>'
+        f'<div class="kpi-value">{value}</div>'
+        f'<div class="kpi-sub">{sub}</div></div>',
         unsafe_allow_html=True,
     )
 
@@ -413,7 +414,7 @@ def tab_overview():
         f"฿{all_items.groupby('slip_id')['item_price'].sum().mean():,.2f}",
         str(len(filtered)),
         _ocr_acc,
-    ], GRADIENTS):
+    ], PALETTE):
         with col:
             kpi(label, val, color=color)
 
@@ -713,10 +714,10 @@ def tab_customers():
     # Segment KPIs
     seg_list = list(SEGMENT_COLORS.items())
     cols = st.columns(len(seg_list))
-    for col, (seg, _) in zip(cols, seg_list):
+    for col, (seg, color) in zip(cols, seg_list):
         cnt = int(segs.get(seg, 0))
         with col:
-            kpi(seg, str(cnt), sub=f"{cnt/total*100:.1f}%", color=SEGMENT_GRADIENTS.get(seg, GRADIENTS[0]))
+            kpi(seg, str(cnt), sub=f"{cnt/total*100:.1f}%", color=color)
 
     # ── AI Insights ───────────────────────────────────────────────────────────
     section("AI CUSTOMER INSIGHTS")
@@ -864,16 +865,16 @@ def tab_segments():
 
     col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
     with col_kpi1:
-        kpi("Total Members", f"{total_members:,}", color=GRADIENTS[0])
+        kpi("Total Members", f"{total_members:,}", color=PALETTE[0])
     with col_kpi2:
         sub_h = f"{heavy_cnt / total_members * 100:.1f}% · spend ≥ 80th percentile" if total_members else "n/a"
-        kpi("Heavy Shopper", f"{heavy_cnt:,}", sub=sub_h, color=GRADIENTS[1])
+        kpi("Heavy Shopper", f"{heavy_cnt:,}", sub=sub_h, color=PALETTE[2])
     with col_kpi3:
         sub_b = f"{bulk_cnt / total_members * 100:.1f}% · item qty ≥ 3" if total_members else "n/a"
-        kpi("Bulk Shopper", f"{bulk_cnt:,}", sub=sub_b, color=GRADIENTS[2])
+        kpi("Bulk Shopper", f"{bulk_cnt:,}", sub=sub_b, color=PALETTE[1])
     with col_kpi4:
         sub_p = f"{promo_cnt / total_members * 100:.1f}% · slip มีส่วนลด" if total_members else "n/a"
-        kpi("Promotion Shopper", f"{promo_cnt:,}", sub=sub_p, color=GRADIENTS[3])
+        kpi("Promotion Shopper", f"{promo_cnt:,}", sub=sub_p, color=PALETTE[3])
 
     col_d1, col_d2 = st.columns(2)
     with col_d1:
