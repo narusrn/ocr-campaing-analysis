@@ -270,7 +270,7 @@ def kpi(label, value, sub="", color="#0064F0"):
 
 
 def section(title):
-    st.markdown(f'<div class="section-title">{title}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="section-title">• {title}</div>', unsafe_allow_html=True)
 
 
 def chart_title(label):
