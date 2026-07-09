@@ -57,23 +57,23 @@ st.set_page_config(
 PALETTE = ec.PALETTE
 SEGMENT_COLORS = ec.SEGMENT_COLORS
 
-# Vibrant gradients — index matches PALETTE order
+# Gradients — ECharts-style two-color diagonal
 GRADIENTS = [
-    "linear-gradient(135deg, #0064F0, #00A3E0)",   # [0] blue
-    "linear-gradient(135deg, #FB654E, #F0A030)",   # [1] orange
-    "linear-gradient(135deg, #00C896, #00A3E0)",   # [2] teal→blue
-    "linear-gradient(135deg, #E0A800, #FB654E)",   # [3] amber→orange
-    "linear-gradient(135deg, #182B45, #0064F0)",   # [4] navy→blue
-    "linear-gradient(135deg, #D19E36, #E0A800)",   # [5] amber
+    "linear-gradient(135deg, #5470c6, #73c0de)",   # [0] blue → cyan
+    "linear-gradient(135deg, #57a661, #91cc75)",   # [1] green → light green
+    "linear-gradient(135deg, #e07b39, #fac858)",   # [2] orange → gold
+    "linear-gradient(135deg, #9a60b4, #ea7ccc)",   # [3] purple → pink
+    "linear-gradient(135deg, #ee6666, #fc8452)",   # [4] red → orange
+    "linear-gradient(135deg, #3ba272, #73c0de)",   # [5] teal → cyan
 ]
 SEGMENT_GRADIENTS = {
-    "Champions":       "linear-gradient(135deg, #00C896, #00A3E0)",
-    "Loyal Customers": "linear-gradient(135deg, #0064F0, #00A3E0)",
-    "Potential":       "linear-gradient(135deg, #E0A800, #FB654E)",
-    "Promising":       "linear-gradient(135deg, #00A3E0, #0064F0)",
-    "At Risk":         "linear-gradient(135deg, #FB654E, #D62828)",
-    "Hibernating":     "linear-gradient(135deg, #D19E36, #E0A800)",
-    "Lost":            "linear-gradient(135deg, #6B7A8D, #9AAABB)",
+    "Champions":       "linear-gradient(135deg, #3ba272, #91cc75)",
+    "Loyal Customers": "linear-gradient(135deg, #5470c6, #73c0de)",
+    "Potential":       "linear-gradient(135deg, #e07b39, #fac858)",
+    "Promising":       "linear-gradient(135deg, #73c0de, #91cc75)",
+    "At Risk":         "linear-gradient(135deg, #ee6666, #fc8452)",
+    "Hibernating":     "linear-gradient(135deg, #9a60b4, #ea7ccc)",
+    "Lost":            "linear-gradient(135deg, #6b7a8d, #9aaabb)",
 }
 
 
