@@ -504,26 +504,6 @@ def tab_overview():
                  color=PALETTE[1], height=280, currency=True)
         st.caption("Revenue by Store Chain (฿)")
 
-    # Review unmatched merchant names
-    other_rows = all_items[all_items["store_chain"] == "Other"]
-    other_slips = all_slip[all_slip["store_chain"] == "Other"]
-    if not other_rows.empty:
-        other_pct = len(other_slips) / len(all_slip) * 100
-        with st.expander(
-            f"🔍 Other Stores — {len(other_slips):,} slips ({other_pct:.1f}%) ยังไม่ถูก match",
-            expanded=False,
-        ):
-            tbl = (
-                other_rows.groupby("merchantname")
-                .agg(slips=("slip_id", "nunique"), revenue=("item_price", "sum"))
-                .reset_index()
-                .sort_values("slips", ascending=False)
-                .rename(columns={"merchantname": "Merchant Name",
-                                 "slips": "# Slips", "revenue": "Revenue (฿)"})
-            )
-            tbl["Revenue (฿)"] = tbl["Revenue (฿)"].apply(lambda v: f"฿{v:,.2f}")
-            st.caption("เพิ่ม keyword ใน CHAIN_KEYWORDS ใน data_loader.py แล้ว restart")
-            st.dataframe(tbl.head(100), hide_index=True, use_container_width=True)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
