@@ -44,7 +44,7 @@ def _html(opt: dict, height: int) -> str:
     cid = "ec" + uuid.uuid4().hex[:8]
     return (
         '<!DOCTYPE html><html><head><meta charset="utf-8">'
-        '<style>html,body{margin:0;padding:0;background:#ffffff;overflow:hidden}'
+        '<style>html,body{margin:0;padding:0;background:#E8EFF9;overflow:hidden}'
         f'#{cid}{{width:100%;height:{height}px}}</style></head>'
         f'<body><div id="{cid}"></div>'
         f'<script src="{_CDN}"></script>'
@@ -62,7 +62,7 @@ def render(opt: dict, height: int = 340):
 
 # ── Shared sub-dicts ───────────────────────────────────────────────────────────
 def _tt(**kw):
-    return {"backgroundColor": "#ffffff", "borderColor": "#E4E7ED",
+    return {"backgroundColor": "#E8EFF9", "borderColor": "#E4E7ED",
             "textStyle": {"color": "#182B45", "fontSize": 12}, **kw}
 
 
@@ -96,7 +96,7 @@ def bar_v(categories, values, color=None, height=280, currency=False, rotate=0):
     else:
         lbl = JS("function(p){return p.value.toLocaleString()}")
     render({
-        "backgroundColor": "#ffffff", "textStyle": {"color": "#3D4F66"},
+        "backgroundColor": "#E8EFF9", "textStyle": {"color": "#3D4F66"},
         "grid": {"containLabel": True, "top": 28, "bottom": 20, "left": 8, "right": 8},
         "xAxis": _cat_ax(categories, rotate=rotate),
         "yAxis": _val_ax(currency),
@@ -154,7 +154,7 @@ def bar_h(categories, values, color=None, height=300, currency=False, counts=Non
             )}
 
     render({
-        "backgroundColor": "#ffffff", "textStyle": {"color": "#3D4F66"},
+        "backgroundColor": "#E8EFF9", "textStyle": {"color": "#3D4F66"},
         "grid": {"containLabel": True, "top": 8, "bottom": 8, "left": 8, "right": 80},
         "xAxis": _val_ax(currency),
         "yAxis": {"type": "category", "data": [str(c) for c in categories],
@@ -177,7 +177,7 @@ def bar_h_dual(categories, revenues, counts, height=320):
     lbl_cnt = JS("function(p){return p.value.toLocaleString()}")
     ydata = [str(c) for c in categories]
     render({
-        "backgroundColor": "#ffffff", "textStyle": {"color": "#3D4F66"},
+        "backgroundColor": "#E8EFF9", "textStyle": {"color": "#3D4F66"},
         "grid": {"containLabel": True, "top": 40, "bottom": 36, "left": 8, "right": 90},
         "xAxis": [
             {"type": "value", "position": "bottom",
@@ -243,7 +243,7 @@ def area_line(series_list, height=300):
             "itemStyle": {"color": s["color"]},
         })
     render({
-        "backgroundColor": "#ffffff", "textStyle": {"color": "#3D4F66"},
+        "backgroundColor": "#E8EFF9", "textStyle": {"color": "#3D4F66"},
         "grid": {"containLabel": True, "top": 30, "bottom": 48, "left": 12, "right": 12},
         "xAxis": _cat_ax(all_dates, rotate=30),
         "yAxis": _val_ax(currency=True),
@@ -284,7 +284,7 @@ def donut(labels, values, colors=None, height=320, show_count=False, currency=Tr
             "return p.name+' '+s}"
         )
     render({
-        "backgroundColor": "#ffffff", "textStyle": {"color": "#3D4F66"},
+        "backgroundColor": "#E8EFF9", "textStyle": {"color": "#3D4F66"},
         "series": [{"type": "pie", "radius": ["42%", "68%"], "center": ["42%", "50%"],
                     "data": [{"name": str(l), "value": float(v),
                               "itemStyle": {"color": pal[i % len(pal)]}}
@@ -338,7 +338,7 @@ def treemap(labels, revenues, counts=None, height=340):
     )
 
     render({
-        "backgroundColor": "#ffffff", "textStyle": {"color": "#ffffff"},
+        "backgroundColor": "#E8EFF9", "textStyle": {"color": "#E8EFF9"},
         "series": [{
             "type": "treemap",
             "data": data,
@@ -350,10 +350,10 @@ def treemap(labels, revenues, counts=None, height=340):
                 "show": True,
                 "formatter": lbl_fmt,
                 "fontSize": 11, "fontWeight": "bold",
-                "color": "#ffffff",
+                "color": "#E8EFF9",
                 "overflow": "truncate",
             },
-            "itemStyle": {"borderColor": "#ffffff", "borderWidth": 2, "gapWidth": 2},
+            "itemStyle": {"borderColor": "#E8EFF9", "borderWidth": 2, "gapWidth": 2},
             "emphasis": {"itemStyle": {"shadowBlur": 8, "shadowColor": "rgba(0,0,0,0.3)"}},
         }],
         "tooltip": {**_tt(), "formatter": tt_fmt},
@@ -372,7 +372,7 @@ def heatmap_grid(x_labels, y_labels, matrix, height=300):
     yl_js = json.dumps([str(y) for y in y_labels], ensure_ascii=False)
     xl_js = json.dumps([str(x) for x in x_labels], ensure_ascii=False)
     render({
-        "backgroundColor": "#ffffff", "textStyle": {"color": "#3D4F66"},
+        "backgroundColor": "#E8EFF9", "textStyle": {"color": "#3D4F66"},
         "grid": {"containLabel": True, "top": 10, "bottom": 56, "left": 12, "right": 16},
         "xAxis": {"type": "category", "data": [str(x) for x in x_labels],
                   "axisLine": {"lineStyle": {"color": "#BDD0F0"}}, "axisTick": {"show": False},
@@ -386,7 +386,7 @@ def heatmap_grid(x_labels, y_labels, matrix, height=300):
                       "inRange": {"color": ["#E4002B", "#FF9999", "#FFEE88", "#88DD88", "#1B7A2E"]}},
         "series": [{"type": "heatmap", "data": data,
                     "itemStyle": {"borderColor": "#E8EFF9", "borderWidth": 1},
-                    "label": {"show": True, "color": "#ffffff", "fontSize": 8},
+                    "label": {"show": True, "color": "#E8EFF9", "fontSize": 8},
                     "emphasis": {"itemStyle": {"shadowBlur": 10, "shadowColor": "rgba(0,163,224,0.4)"}}}],
         "tooltip": {"trigger": "item", **_tt(), "formatter": JS(
             f"function(p){{return'<b>'+{yl_js}[p.data[1]]+'</b> × <b>'"
@@ -417,7 +417,7 @@ def bar_v_multi(categories, series_list, height=280, currency=False):
                       "color": "#3D4F66", "fontSize": 9, "formatter": lbl},
         })
     render({
-        "backgroundColor": "#ffffff", "textStyle": {"color": "#3D4F66"},
+        "backgroundColor": "#E8EFF9", "textStyle": {"color": "#3D4F66"},
         "grid": {"containLabel": True, "top": 36, "bottom": 20, "left": 8, "right": 8},
         "xAxis": _cat_ax(categories),
         "yAxis": _val_ax(currency),
@@ -454,7 +454,7 @@ def bubble_scatter(segments_data, height=360):
             "itemStyle": {"color": color, "opacity": 0.82},
         })
     render({
-        "backgroundColor": "#ffffff", "textStyle": {"color": "#3D4F66"},
+        "backgroundColor": "#E8EFF9", "textStyle": {"color": "#3D4F66"},
         "grid": {"containLabel": True, "top": 24, "bottom": 44, "left": 12, "right": 12},
         "xAxis": {"type": "value", "name": "Frequency",
                   "nameTextStyle": {"color": "#3D4F66"},

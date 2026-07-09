@@ -141,7 +141,7 @@ button, input, textarea, select, label {
 /* ── AI Insight card ──────────────────────────────────────────────── */
 .insight-card {
     background: #E8EFF9;
-    border: 1px solid #E4E7ED;
+    border: 2px solid #BDD0F0;
     border-radius: 12px;
     padding: 20px 24px;
     margin: 4px 0 16px;
