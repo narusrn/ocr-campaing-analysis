@@ -188,6 +188,23 @@ def load_data() -> dict[str, pd.DataFrame]:
     return result
 
 
+def load_promotion_slip_ids() -> set:
+    """Return slip_ids of approved slips that contain a discount item
+    (item_name contains 'ส่วนลด' or item_price < 0)."""
+    result: set = set()
+    for sheet in CAMPAIGNS:
+        df = pd.read_excel(DATA_PATH, sheet_name=sheet, engine="openpyxl",
+                           usecols=lambda c: c in ("slip_status", "slip_id", "item_name", "item_price"))
+        df = df[df["slip_status"] == "approve"].copy()
+        df["item_price"] = pd.to_numeric(df["item_price"], errors="coerce")
+        promo = df[
+            df["item_name"].str.contains("ส่วนลด", na=False) |
+            (df["item_price"] < 0)
+        ]
+        result |= set(promo["slip_id"].dropna().unique())
+    return result
+
+
 def load_ocr_accuracy() -> dict[str, dict]:
     """OCR accuracy per campaign: % of all rows where item_name == item_ocrname."""
     result = {}

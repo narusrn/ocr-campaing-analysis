@@ -59,7 +59,7 @@ def save_category_segments(data: list[dict]) -> None:
     )
 
 
-def compute_segments(df: pd.DataFrame) -> dict[str, dict]:
+def compute_segments(df: pd.DataFrame, promotion_slip_ids: set | None = None) -> dict[str, dict]:
     """Returns dict[segment_name, {"members": set[str], "revenue": float}]"""
     result: dict[str, dict] = {}
 
@@ -110,5 +110,12 @@ def compute_segments(df: pd.DataFrame) -> dict[str, dict]:
         "members": bulk_set,
         "revenue": float(df[df["member"].isin(bulk_set)]["item_price"].sum()),
     }
+
+    if promotion_slip_ids:
+        promo_sub = df[df["slip_id"].isin(promotion_slip_ids)]
+        result["Promotion Shopper"] = {
+            "members": set(promo_sub["member"].dropna().unique()),
+            "revenue": float(promo_sub["item_price"].sum()),
+        }
 
     return result

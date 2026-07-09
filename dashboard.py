@@ -35,6 +35,7 @@ from data_loader import (load_data, get_slip_df, compute_rfm, compute_basket_mat
                          load_stores_db, save_stores_db,
                          DEFAULT_CHAIN_KEYWORDS, DEFAULT_ONLINE_CHAINS,
                          load_ignore_db, save_ignore_db, DEFAULT_IGNORE_KEYWORDS,
+                         load_promotion_slip_ids,
                          load_ocr_accuracy)
 from categorizer import (add_categories_to_df, preprocess_name,
                          load_categories_db, save_categories_db,
@@ -285,6 +286,11 @@ def chart_title(label):
 @st.cache_data(show_spinner="Loading data...")
 def get_all_data():
     return load_data()
+
+
+@st.cache_data(show_spinner=False)
+def get_promotion_slip_ids():
+    return load_promotion_slip_ids()
 
 
 @st.cache_data(show_spinner="AI กำลังวิเคราะห์ข้อมูล...")
@@ -797,7 +803,7 @@ def tab_segments():
         cat_dfs[name] = cdf
     cat_df = pd.concat(cat_dfs.values())
 
-    segs          = compute_segments(cat_df)
+    segs          = compute_segments(cat_df, get_promotion_slip_ids())
     total_members = int(cat_df["member"].nunique())
 
     # ── Retail Channel ────────────────────────────────────────────────────
