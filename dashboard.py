@@ -687,7 +687,6 @@ def tab_customers():
     rfm_camp = st.selectbox("Campaign", list(filtered.keys()), key="rfm_camp")
     rfm = compute_rfm(filtered[rfm_camp])
     segs = rfm["segment"].value_counts()
-    total = len(rfm)
 
     # Segment KPIs
     seg_list = list(SEGMENT_COLORS.items())
@@ -695,7 +694,7 @@ def tab_customers():
     for col, (seg, _) in zip(cols, seg_list):
         cnt = int(segs.get(seg, 0))
         with col:
-            kpi(seg, str(cnt), sub=f"{cnt/total*100:.1f}%", color=SEGMENT_GRADIENTS.get(seg, GRADIENTS[0]))
+            kpi(seg, str(cnt), color=SEGMENT_GRADIENTS.get(seg, GRADIENTS[0]))
 
     # ── AI Insights ───────────────────────────────────────────────────────────
     section("AI CUSTOMER INSIGHTS")
@@ -845,14 +844,11 @@ def tab_segments():
     with col_kpi1:
         kpi("Total Members", f"{total_members:,}", color=GRADIENTS[0])
     with col_kpi2:
-        sub_h = f"{heavy_cnt / total_members * 100:.1f}% · spend ≥ 80th percentile" if total_members else "n/a"
-        kpi("Heavy Shopper", f"{heavy_cnt:,}", sub=sub_h, color=GRADIENTS[1])
+        kpi("Heavy Shopper", f"{heavy_cnt:,}", color=GRADIENTS[1])
     with col_kpi3:
-        sub_b = f"{bulk_cnt / total_members * 100:.1f}% · item qty ≥ 3" if total_members else "n/a"
-        kpi("Bulk Shopper", f"{bulk_cnt:,}", sub=sub_b, color=GRADIENTS[2])
+        kpi("Bulk Shopper", f"{bulk_cnt:,}", color=GRADIENTS[2])
     with col_kpi4:
-        sub_p = f"{promo_cnt / total_members * 100:.1f}% · slip มีส่วนลด" if total_members else "n/a"
-        kpi("Promotion Shopper", f"{promo_cnt:,}", sub=sub_p, color=GRADIENTS[3])
+        kpi("Promotion Shopper", f"{promo_cnt:,}", color=GRADIENTS[3])
 
     col_d1, col_d2 = st.columns(2)
     with col_d1:
