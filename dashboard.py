@@ -140,13 +140,11 @@ button, input, textarea, select, label {
 
 /* ── AI Insight card ──────────────────────────────────────────────── */
 .insight-card {
-    background: linear-gradient(135deg, #e4f9ff 0%, #ccf4ff 100%);
-    border: 1px solid #b8e8f8;
-    border-left: 3px solid #0064F0;
+    background: #ffffff;
+    border: 1px solid #E4E7ED;
     border-radius: 12px;
     padding: 20px 24px;
     margin: 4px 0 16px;
-    box-shadow: 0px 2px 4px -2px #0000000f, 0px 4px 8px -2px #0000001a;
 }
 
 /* ── Expanders ────────────────────────────────────────────────────── */
