@@ -1,8 +1,12 @@
+import base64
 import subprocess
 from pathlib import Path
 
 import streamlit as st
 import pandas as pd
+
+_LOGO_PATH = Path(__file__).parent / "assets" / "white-logo.png"
+_LOGO_B64  = base64.b64encode(_LOGO_PATH.read_bytes()).decode() if _LOGO_PATH.exists() else ""
 
 
 def _git_persist(*filenames: str) -> None:
@@ -45,7 +49,7 @@ from llm_summary import (build_context, generate_summary,
 st.set_page_config(
     page_title="Campaign OCR Analytics",
     layout="wide",
-    page_icon="📊",
+    page_icon=str(_LOGO_PATH) if _LOGO_PATH.exists() else "📊",
     initial_sidebar_state="expanded",
 )
 
@@ -315,7 +319,10 @@ all_data = get_all_data()
 campaign_names = list(all_data.keys())
 
 with st.sidebar:
-    st.markdown("### 📊 Campaign Analytics")
+    if _LOGO_B64:
+        st.markdown(f"<img src='data:image/png;base64,{_LOGO_B64}' style='width:140px;margin-bottom:8px'>", unsafe_allow_html=True)
+    else:
+        st.markdown("### Campaign Analytics")
     st.divider()
 
     selected = st.multiselect(
@@ -1284,13 +1291,13 @@ def tab_categories():
 # Main
 # ═════════════════════════════════════════════════════════════════════════════
 st.markdown(
-    "<h1 style='margin-bottom:0'>📊 Campaign OCR Analytics</h1>"
+    f"<h1 style='margin-bottom:0'><img src='data:image/png;base64,{_LOGO_B64}' style='height:36px;vertical-align:middle;margin-right:10px'>Campaign OCR Analytics</h1>" if _LOGO_B64 else "<h1 style='margin-bottom:0'>Campaign OCR Analytics</h1>"
     f"<p style='color:#3362B0;margin-top:4px'>"
     f"{' · '.join(selected)}  |  {d_from} → {d_to}  |  Approved slips only</p>",
     unsafe_allow_html=True,
 )
 
-tabs = st.tabs(["📊 Overview", "🛒 Products", "👥 Customers RFM", "🎯 Segments", "⚙️ Categories"])
+tabs = st.tabs(["Overview", "🛒 Products", "👥 Customers RFM", "🎯 Segments", "⚙️ Categories"])
 
 # Persist active tab across Streamlit reruns via sessionStorage
 st.components.v1.html("""<script>
