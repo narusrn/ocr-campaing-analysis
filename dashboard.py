@@ -809,12 +809,18 @@ def tab_segments():
         key=lambda x: x[1],
     )
     if all_seg_data:
-        ec.bar_h(
-            categories=[x[0] for x in all_seg_data],
-            values=[x[1] for x in all_seg_data],
-            color=PALETTE[0],
-            height=max(300, len(all_seg_data) * 36 + 80),
-        )
+        _tm_data = [
+            {"name": n, "value": c, "itemStyle": {"color": PALETTE[i % len(PALETTE)]}}
+            for i, (n, c) in enumerate(sorted(all_seg_data, key=lambda x: x[1], reverse=True))
+        ]
+        ec.render({
+            "backgroundColor": "#E8EFF9",
+            "tooltip": {"formatter": ec.JS("function(p){return p.marker+'<b>'+p.name+'</b><br>Members: <b>'+p.value.toLocaleString()+'</b>';}")},
+            "series": [{"type": "treemap", "data": _tm_data, "width": "100%", "height": "100%",
+                        "label": {"show": True, "formatter": ec.JS("function(p){return p.name+'\\n'+p.value.toLocaleString();}"),
+                                  "fontSize": 13, "color": "#fff"},
+                        "breadcrumb": {"show": False}}],
+        }, height=420)
 
     # ── Retail Channel ────────────────────────────────────────────────────
     section("🏪 RETAIL CHANNEL PREFERENCE")
