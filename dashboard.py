@@ -532,10 +532,6 @@ def tab_products():
         get_categorized.clear()
         st.rerun()
 
-    if st.button("🔄 Reload Classification", help="ใช้หลัง Save config ใน Categories tab เพื่อ re-classify ใหม่"):
-        get_categorized.clear()
-        st.rerun()
-
     # ── AI Insights ───────────────────────────────────────────────────────────
     section("AI PRODUCT INSIGHTS")
     import json as _json
@@ -606,22 +602,6 @@ def tab_products():
                 currency=True,
                 rotate=30,
             )
-        unc_sku = combined[combined["sku_type"] == "อื่นๆ"]
-        if not unc_sku.empty:
-            unc_pct = len(unc_sku) / len(combined) * 100
-            with st.expander(
-                f"🔍 ยังไม่ระบุ SKU Type — {len(unc_sku):,} items ({unc_pct:.0f}%) · คลิกเพื่อดูและเพิ่ม keyword",
-                expanded=False,
-            ):
-                st.caption("item_name ที่พบบ่อยสุด — นำ keyword ไปเพิ่มใน Categories tab › SKU Types")
-                top_unk = (unc_sku.groupby(["category", "item_name"])["item_price"]
-                           .agg(count="count", revenue="sum")
-                           .reset_index().sort_values("count", ascending=False).head(40))
-                st.dataframe(
-                    top_unk.rename(columns={"category": "Category", "item_name": "Item Name",
-                                            "count": "Count", "revenue": "Revenue (฿)"}),
-                    use_container_width=True, hide_index=True,
-                )
 
     # ── Network / Heatmap toggle ──────────────────────────────────────────────
     section("PRODUCT NETWORK & CO-OCCURRENCE")
