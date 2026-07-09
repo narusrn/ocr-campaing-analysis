@@ -30,7 +30,8 @@ import echarts_helper as ec
 from data_loader import (load_data, get_slip_df, compute_rfm, compute_basket_matrix,
                          load_stores_db, save_stores_db,
                          DEFAULT_CHAIN_KEYWORDS, DEFAULT_ONLINE_CHAINS,
-                         load_ignore_db, save_ignore_db, DEFAULT_IGNORE_KEYWORDS)
+                         load_ignore_db, save_ignore_db, DEFAULT_IGNORE_KEYWORDS,
+                         load_ocr_accuracy)
 from categorizer import (add_categories_to_df, preprocess_name,
                          load_categories_db, save_categories_db,
                          load_brands_db, save_brands_db,
@@ -369,10 +370,13 @@ def tab_overview():
     )
 
     # KPI row
-    _ocr_acc = (
-        f"{(all_items['item_name'] == all_items['item_ocrname']).mean() * 100:.1f}%"
-        if "item_ocrname" in all_items.columns else "N/A"
-    )
+    _ocr_data = load_ocr_accuracy()
+    _ocr_sel  = [_ocr_data[k] for k in filtered if k in _ocr_data]
+    if _ocr_sel:
+        _c, _t = sum(d["correct"] for d in _ocr_sel), sum(d["total"] for d in _ocr_sel)
+        _ocr_acc = f"{_c / _t * 100:.1f}%" if _t else "N/A"
+    else:
+        _ocr_acc = "N/A"
     c = st.columns(6)
     for col, label, val, color in zip(c, [
         "Total Revenue", "Total Orders", "Unique Members", "Avg Basket", "Campaigns", "OCR Accuracy"
