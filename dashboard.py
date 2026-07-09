@@ -822,10 +822,18 @@ def tab_segments():
         heavy_cnt = len(segs["Heavy Shopper"]["members"])
         bulk_cnt  = len(segs["Bulk Shopper"]["members"])
         promo_cnt = len(segs.get("Promotion Shopper", {}).get("members", set()))
-        kpi("Total Members",    f"{total_members:,}", color=GRADIENTS[0])
-        kpi("Heavy Shopper",    f"{heavy_cnt:,}",    color=GRADIENTS[1])
-        kpi("Bulk Shopper",     f"{bulk_cnt:,}",     color=GRADIENTS[2])
-        kpi("Promotion Shopper",f"{promo_cnt:,}",    color=GRADIENTS[3])
+        other_cnt = max(total_members - len(
+            segs["Heavy Shopper"]["members"] | segs["Bulk Shopper"]["members"] |
+            segs.get("Promotion Shopper", {}).get("members", set())
+        ), 0)
+        ec.donut(
+            labels=["Heavy Shopper", "Bulk Shopper", "Promotion Shopper", "Others"],
+            values=[heavy_cnt, bulk_cnt, promo_cnt, other_cnt],
+            colors=[PALETTE[1], PALETTE[2], PALETTE[3], PALETTE[4]],
+            height=max(260, len(nz_ch) * 52 + 80),
+            show_count=True,
+            currency=False,
+        )
 
     # ── Row 2: Category Affinity full width ───────────────────────────────
     section("🛒 CATEGORY AFFINITY")
