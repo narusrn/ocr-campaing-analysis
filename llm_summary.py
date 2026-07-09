@@ -318,6 +318,90 @@ def generate_rfm_summary(ctx: dict) -> str:
         return f"❌ Error: {exc}"
 
 
+# ── Segments ──────────────────────────────────────────────────────────────────
+def build_segments_context(segs: dict, total_members: int, campaigns: list[str]) -> dict:
+    """Build context dict from compute_segments() output for the AI prompt."""
+    groups = {
+        "channel":  ["Convenience Store Shopper", "Hypermarket Shopper", "Premium Retail Shopper",
+                     "Drug Store Shopper", "Wholesale Shopper", "Online Shopper"],
+        "affinity": ["Skincare Shopper", "Hair Care Shopper", "Oral Care Shopper",
+                     "Laundry Shopper", "Fabric Care Shopper", "Dishwash Shopper",
+                     "Snack Shopper", "Beverage Shopper", "Ready to Eat Shopper"],
+        "behavior": ["Heavy Shopper", "Bulk Shopper", "Promotion Shopper"],
+    }
+    out: dict = {"campaigns": campaigns, "total_members": total_members, "groups": {}}
+    for grp, names in groups.items():
+        rows = {}
+        for n in names:
+            if n not in segs:
+                continue
+            d = segs[n]
+            cnt = len(d["members"])
+            if cnt == 0:
+                continue
+            rows[n] = {
+                "count":   cnt,
+                "pct":     round(cnt / total_members * 100, 1) if total_members else 0,
+                "revenue": round(d["revenue"], 0),
+            }
+        out["groups"][grp] = dict(sorted(rows.items(), key=lambda x: -x[1]["count"]))
+    return out
+
+
+def _build_segments_prompt(ctx: dict) -> str:
+    def _fmt_group(rows: dict) -> str:
+        return "\n".join(
+            f"  - {n} ({v['pct']}%, {v['count']:,} คน | รายได้ {_fmt_thb(v['revenue'])})"
+            for n, v in rows.items()
+        ) or "  - (ไม่มีข้อมูล)"
+
+    return f"""คุณเป็น CRM Analyst ของ Unilever Thailand กำลังวิเคราะห์ Customer Segments
+
+Campaign: {', '.join(ctx['campaigns'])}
+สมาชิกทั้งหมด: {ctx['total_members']:,} คน
+
+=== Retail Channel ===
+{_fmt_group(ctx['groups'].get('channel', {}))}
+
+=== Category Affinity ===
+{_fmt_group(ctx['groups'].get('affinity', {}))}
+
+=== Shopper Behavior ===
+{_fmt_group(ctx['groups'].get('behavior', {}))}
+
+โปรดสรุปเป็น **ภาษาไทย** ในรูปแบบ Markdown (ระบุตัวเลขจริง):
+
+### 👥 ลูกค้าของเราคือใคร?
+[2-3 ประโยค สรุปว่าลูกค้าส่วนใหญ่ซื้อที่ไหน และสนใจสินค้าหมวดใด]
+
+### 🏆 กลุ่มที่ทำรายได้สูงสุด
+- [bullet 1: ช่องทาง + ตัวเลข]
+- [bullet 2: สินค้า/บริการ + ตัวเลข]
+
+### 💡 ข้อเสนอแนะ
+- [action 1 — actionable และเฉพาะเจาะจง]
+- [action 2]
+
+ตอบกระชับ ไม่เกิน 250 คำ"""
+
+
+def generate_segments_summary(ctx: dict) -> str:
+    api_key = _get_api_key()
+    if not api_key:
+        return "⚠️ ไม่พบ OPENAI_API_KEY ใน `.streamlit/secrets.toml`"
+    try:
+        from openai import OpenAI  # noqa: PLC0415
+        client = OpenAI(api_key=api_key)
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            max_tokens=1024,
+            messages=[{"role": "user", "content": _build_segments_prompt(ctx)}],
+        )
+        return _strip_fence(resp.choices[0].message.content)
+    except Exception as exc:  # noqa: BLE001
+        return f"❌ Error: {exc}"
+
+
 def generate_summary(ctx: dict) -> str:
     api_key = _get_api_key()
     if not api_key:

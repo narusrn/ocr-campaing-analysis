@@ -45,6 +45,7 @@ from network_viz import render_item_network, render_legend, CAT_COLORS
 from llm_summary import (build_context, generate_summary,
                           build_products_context, generate_products_summary,
                           build_rfm_context, generate_rfm_summary,
+                          build_segments_context, generate_segments_summary,
                           highlight_insight)
 
 st.set_page_config(
@@ -324,6 +325,13 @@ def get_rfm_insight(ctx_key: str, ctx_json: str) -> str:
     import json
     _ = ctx_key
     return generate_rfm_summary(json.loads(ctx_json))
+
+
+@st.cache_data(show_spinner="AI กำลังวิเคราะห์ segment ลูกค้า...")
+def get_segments_insight(ctx_key: str, ctx_json: str) -> str:
+    import json
+    _ = ctx_key
+    return generate_segments_summary(json.loads(ctx_json))
 
 
 @st.cache_data(show_spinner="Computing categories (first run ~1 min)...")
@@ -799,6 +807,16 @@ def tab_segments():
 
     ch_names  = list(CHANNEL_SEGMENTS.keys()) + [ONLINE_SEGMENT]
     cat_names = list(dict.fromkeys(r["segment"] for r in load_category_segments()))
+
+    # ── AI Segment Summary ────────────────────────────────────────────────────
+    import json as _json
+    section("🤖 AI INSIGHT: ลูกค้าของเราคือใคร?")
+    seg_ctx      = build_segments_context(segs, total_members, list(filtered.keys()))
+    seg_ctx_json = _json.dumps(seg_ctx, ensure_ascii=False, default=str)
+    seg_ctx_key  = f"segs|{'|'.join(sorted(filtered.keys()))}|{d_from}|{d_to}"
+    raw_seg      = get_segments_insight(seg_ctx_key, seg_ctx_json)
+    st.markdown(f'<div class="insight-card">{highlight_insight(raw_seg)}</div>',
+                unsafe_allow_html=True)
 
     # ── Row 1: Channel + Behavior side by side ────────────────────────────
     col_left, col_right = st.columns([1.1, 0.9])
