@@ -188,14 +188,13 @@ def load_data() -> dict[str, pd.DataFrame]:
     return result
 
 
-def load_ocr_accuracy() -> dict[str, float]:
-    """OCR accuracy per campaign: % of approve-status items where item_name == item_ocrname.
-    Uses all approved rows (no item_verify filter) so unverified items are counted."""
+def load_ocr_accuracy() -> dict[str, dict]:
+    """OCR accuracy per campaign: among item_verify==1 rows, % where item_name == item_ocrname."""
     result = {}
     for sheet, display in CAMPAIGNS.items():
         df = pd.read_excel(DATA_PATH, sheet_name=sheet, engine="openpyxl",
-                           usecols=lambda c: c in ("slip_status", "item_name", "item_ocrname"))
-        df = df[df["slip_status"] == "approve"]
+                           usecols=lambda c: c in ("slip_status", "item_verify", "item_name", "item_ocrname"))
+        df = df[(df["slip_status"] == "approve") & (df["item_verify"] == 1)]
         if "item_ocrname" not in df.columns or len(df) == 0:
             continue
         match = (df["item_name"] == df["item_ocrname"])
