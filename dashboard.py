@@ -797,122 +797,48 @@ def tab_segments():
     segs          = compute_segments(cat_df, get_promotion_slip_ids())
     total_members = int(cat_df["member"].nunique())
 
-    # ── All Segments Overview ─────────────────────────────────────────────
-    section("📊 ALL SEGMENTS — MEMBER COUNT")
     ch_names  = list(CHANNEL_SEGMENTS.keys()) + [ONLINE_SEGMENT]
     cat_names = list(dict.fromkeys(r["segment"] for r in load_category_segments()))
-    beh_names = ["Heavy Shopper", "Bulk Shopper", "Promotion Shopper"]
 
-    def _seg_bar(title, names, color):
-        rows = sorted(
-            [(n, len(segs[n]["members"])) for n in names if n in segs and segs[n]["members"]],
+    # ── Row 1: Channel + Behavior side by side ────────────────────────────
+    col_left, col_right = st.columns([1.1, 0.9])
+
+    with col_left:
+        section("🏪 RETAIL CHANNEL")
+        nz_ch = sorted(
+            [(n, len(segs[n]["members"]), segs[n]["revenue"]) for n in ch_names if segs[n]["members"]],
             key=lambda x: x[1],
         )
-        if not rows:
-            return
-        cats = [r[0] for r in rows]
-        vals = [r[1] for r in rows]
-        max_val = max(vals) or 1
-        ec.render({
-            "backgroundColor": "#E8EFF9",
-            "title": {"text": title, "textStyle": {"fontSize": 12, "fontWeight": "bold", "color": "#182B45"}, "top": 0, "left": 0},
-            "grid": {"top": 32, "bottom": 4, "left": 8, "right": 56, "containLabel": True},
-            "xAxis": {"type": "value", "show": False, "max": max_val * 1.25},
-            "yAxis": {"type": "category", "data": cats,
-                      "axisTick": {"show": False}, "axisLine": {"show": False},
-                      "axisLabel": {"fontSize": 10, "color": "#182B45"}},
-            "tooltip": {"trigger": "axis", **ec._tt(),
-                        "formatter": ec.JS("function(p){return p[0].marker+p[0].name+': <b>'+p[0].value.toLocaleString()+'</b> members';}")},
-            "series": [{"type": "bar", "data": vals,
-                        "itemStyle": {"color": color, "borderRadius": [0, 6, 6, 0]},
-                        "barMaxWidth": 22,
-                        "label": {"show": True, "position": "right",
-                                  "color": "#3D4F66", "fontSize": 10,
-                                  "formatter": ec.JS("function(p){return p.value.toLocaleString();}")}}],
-        }, height=max(200, len(cats) * 34 + 56))
+        if nz_ch:
+            ec.bar_h_dual(
+                categories=[x[0] for x in nz_ch],
+                revenues=[x[2] for x in nz_ch],
+                counts=[x[1] for x in nz_ch],
+                height=max(260, len(nz_ch) * 52 + 80),
+            )
 
-    col_ch, col_cat, col_beh = st.columns(3)
-    with col_ch:
-        _seg_bar("🏪 Retail Channel", ch_names, "#5470c6")
-    with col_cat:
-        _seg_bar("🛒 Category Affinity", cat_names, "#e07b39")
-    with col_beh:
-        _seg_bar("⚡ Shopper Behavior", beh_names, "#3ba272")
+    with col_right:
+        section("⚡ SHOPPER BEHAVIOR")
+        heavy_cnt = len(segs["Heavy Shopper"]["members"])
+        bulk_cnt  = len(segs["Bulk Shopper"]["members"])
+        promo_cnt = len(segs.get("Promotion Shopper", {}).get("members", set()))
+        kpi("Total Members",    f"{total_members:,}", color=GRADIENTS[0])
+        kpi("Heavy Shopper",    f"{heavy_cnt:,}",    color=GRADIENTS[1])
+        kpi("Bulk Shopper",     f"{bulk_cnt:,}",     color=GRADIENTS[2])
+        kpi("Promotion Shopper",f"{promo_cnt:,}",    color=GRADIENTS[3])
 
-    # ── Retail Channel ────────────────────────────────────────────────────
-    section("🏪 RETAIL CHANNEL PREFERENCE")
-    ch_names = list(CHANNEL_SEGMENTS.keys()) + [ONLINE_SEGMENT]
-    nz_ch    = sorted(
-        [(n, len(segs[n]["members"]), segs[n]["revenue"]) for n in ch_names if segs[n]["members"]],
-        key=lambda x: x[1],
-    )
-    if not nz_ch:
-        st.info("ไม่พบข้อมูลช่องทางการขาย")
-    else:
-        chart_title("MEMBER COUNT & REVENUE BY CHANNEL")
-        ec.bar_h_dual(
-            categories=[x[0] for x in nz_ch],
-            revenues=[x[2] for x in nz_ch],
-            counts=[x[1] for x in nz_ch],
-            height=max(240, len(nz_ch) * 56 + 100),
-        )
-
-    # ── Category Affinity ─────────────────────────────────────────────────
+    # ── Row 2: Category Affinity full width ───────────────────────────────
     section("🛒 CATEGORY AFFINITY")
-    cat_names = list(dict.fromkeys(r["segment"] for r in load_category_segments()))
-    nz_cat    = sorted(
+    nz_cat = sorted(
         [(n, len(segs[n]["members"]), segs[n]["revenue"]) for n in cat_names if segs[n]["members"]],
         key=lambda x: x[1],
     )
-    if not nz_cat:
-        st.info("ไม่พบข้อมูลหมวดหมู่สินค้า")
-    else:
-        chart_title("MEMBER COUNT & REVENUE BY CATEGORY AFFINITY")
+    if nz_cat:
         ec.bar_h_dual(
             categories=[x[0] for x in nz_cat],
             revenues=[x[2] for x in nz_cat],
             counts=[x[1] for x in nz_cat],
-            height=max(280, len(nz_cat) * 56 + 100),
-        )
-
-    # ── Shopper Behavior ──────────────────────────────────────────────────
-    section("⚡ SHOPPER BEHAVIOR")
-    heavy_cnt = len(segs["Heavy Shopper"]["members"])
-    bulk_cnt  = len(segs["Bulk Shopper"]["members"])
-    promo_cnt = len(segs.get("Promotion Shopper", {}).get("members", set()))
-    other_cnt = total_members - len(segs["Heavy Shopper"]["members"] | segs["Bulk Shopper"]["members"])
-
-    col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
-    with col_kpi1:
-        kpi("Total Members", f"{total_members:,}", color=GRADIENTS[0])
-    with col_kpi2:
-        kpi("Heavy Shopper", f"{heavy_cnt:,}", color=GRADIENTS[1])
-    with col_kpi3:
-        kpi("Bulk Shopper", f"{bulk_cnt:,}", color=GRADIENTS[2])
-    with col_kpi4:
-        kpi("Promotion Shopper", f"{promo_cnt:,}", color=GRADIENTS[3])
-
-    col_d1, col_d2 = st.columns(2)
-    with col_d1:
-        chart_title("BEHAVIOR SEGMENT DISTRIBUTION")
-        ec.donut(
-            labels=["Heavy Shopper", "Bulk Shopper", "Promotion Shopper", "Others"],
-            values=[heavy_cnt, bulk_cnt, promo_cnt, max(other_cnt, 0)],
-            colors=[PALETTE[2], PALETTE[1], PALETTE[3], PALETTE[4]],
-            height=300,
-            show_count=True,
-            currency=False,
-        )
-    with col_d2:
-        chart_title("BEHAVIOR SEGMENT — REVENUE SHARE")
-        ec.donut(
-            labels=["Heavy Shopper", "Bulk Shopper", "Promotion Shopper"],
-            values=[segs["Heavy Shopper"]["revenue"], segs["Bulk Shopper"]["revenue"],
-                    segs.get("Promotion Shopper", {}).get("revenue", 0)],
-            colors=[PALETTE[2], PALETTE[1], PALETTE[3]],
-            height=300,
-            show_count=False,
-            currency=True,
+            height=max(280, len(nz_cat) * 52 + 80),
         )
 
 
