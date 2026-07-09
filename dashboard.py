@@ -130,10 +130,10 @@ button, input, textarea, select, label {
 
 /* ── Section titles ───────────────────────────────────────────────── */
 .section-title {
-    color: #0064F0; font-size: 11px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 1.5px;
-    border-bottom: 2px solid #BDD0F0;
-    padding-bottom: 6px; margin: 22px 0 12px;
+    color: #182B45; font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1.2px;
+    border-left: 4px solid #0064F0;
+    padding: 4px 0 4px 12px; margin: 24px 0 14px;
     display: flex; align-items: center; gap: 8px;
 }
 
