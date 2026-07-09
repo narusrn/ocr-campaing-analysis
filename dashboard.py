@@ -5,7 +5,7 @@ from pathlib import Path
 import streamlit as st
 import pandas as pd
 
-_LOGO_PATH = Path(__file__).parent / "assets" / "white-logo.png"
+_LOGO_PATH = Path(__file__).parent / "assets" / "black-logo.png"
 _LOGO_B64  = base64.b64encode(_LOGO_PATH.read_bytes()).decode() if _LOGO_PATH.exists() else ""
 
 
