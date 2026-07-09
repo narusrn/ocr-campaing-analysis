@@ -193,7 +193,8 @@ def load_ocr_accuracy() -> dict[str, dict]:
     result = {}
     for sheet, display in CAMPAIGNS.items():
         df = pd.read_excel(DATA_PATH, sheet_name=sheet, engine="openpyxl",
-                           usecols=lambda c: c in ("item_name", "item_ocrname"))
+                           usecols=lambda c: c in ("slip_status", "item_name", "item_ocrname"))
+        df = df[df["slip_status"] == "approve"]
         if "item_ocrname" not in df.columns or len(df) == 0:
             continue
         match = (df["item_name"] == df["item_ocrname"])
