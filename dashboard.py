@@ -799,28 +799,30 @@ def tab_segments():
 
     # ── All Segments Overview ─────────────────────────────────────────────
     section("📊 ALL SEGMENTS — MEMBER COUNT")
-    all_seg_names = (
-        list(CHANNEL_SEGMENTS.keys()) + [ONLINE_SEGMENT]
-        + list(dict.fromkeys(r["segment"] for r in load_category_segments()))
-        + ["Heavy Shopper", "Bulk Shopper", "Promotion Shopper"]
-    )
-    all_seg_data = sorted(
-        [(n, len(segs[n]["members"])) for n in all_seg_names if n in segs and segs[n]["members"]],
-        key=lambda x: x[1],
-    )
-    if all_seg_data:
-        _tm_data = [
-            {"name": n, "value": c, "itemStyle": {"color": PALETTE[i % len(PALETTE)]}}
-            for i, (n, c) in enumerate(sorted(all_seg_data, key=lambda x: x[1], reverse=True))
+    def _seg_children(names, colors):
+        return [
+            {"name": n, "value": len(segs[n]["members"]),
+             "itemStyle": {"color": colors[i % len(colors)]}}
+            for i, n in enumerate(names) if n in segs and segs[n]["members"]
         ]
-        ec.render({
-            "backgroundColor": "#E8EFF9",
-            "tooltip": {"formatter": ec.JS("function(p){return p.marker+'<b>'+p.name+'</b><br>Members: <b>'+p.value.toLocaleString()+'</b>';}")},
-            "series": [{"type": "treemap", "data": _tm_data, "width": "100%", "height": "100%",
-                        "label": {"show": True, "formatter": ec.JS("function(p){return p.name+'\\n'+p.value.toLocaleString();}"),
-                                  "fontSize": 13, "color": "#fff"},
-                        "breadcrumb": {"show": False}}],
-        }, height=420)
+    ch_names  = list(CHANNEL_SEGMENTS.keys()) + [ONLINE_SEGMENT]
+    cat_names = list(dict.fromkeys(r["segment"] for r in load_category_segments()))
+    beh_names = ["Heavy Shopper", "Bulk Shopper", "Promotion Shopper"]
+    _tm_data = [
+        {"name": "🏪 Channel",          "children": _seg_children(ch_names,  PALETTE[:3]),  "itemStyle": {"color": PALETTE[0]}},
+        {"name": "🛒 Category Affinity","children": _seg_children(cat_names, PALETTE[1:4]), "itemStyle": {"color": PALETTE[1]}},
+        {"name": "⚡ Behavior",          "children": _seg_children(beh_names, PALETTE[2:5]), "itemStyle": {"color": PALETTE[2]}},
+    ]
+    ec.render({
+        "backgroundColor": "#E8EFF9",
+        "tooltip": {"formatter": ec.JS("function(p){if(!p.data.children)return p.marker+'<b>'+p.name+'</b><br>Members: <b>'+(p.value||0).toLocaleString()+'</b>';return p.name;}")},
+        "series": [{"type": "treemap", "data": _tm_data, "width": "100%", "height": "100%",
+                    "roam": False,
+                    "label": {"show": True, "formatter": ec.JS("function(p){return p.name+'\\n'+(p.value||'').toLocaleString();}"),
+                              "fontSize": 12, "color": "#fff"},
+                    "upperLabel": {"show": True, "height": 28, "fontSize": 12, "fontWeight": "bold", "color": "#fff"},
+                    "breadcrumb": {"show": False}}],
+    }, height=440)
 
     # ── Retail Channel ────────────────────────────────────────────────────
     section("🏪 RETAIL CHANNEL PREFERENCE")
