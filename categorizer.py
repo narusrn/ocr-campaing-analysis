@@ -5,8 +5,8 @@ from pathlib import Path
 
 import numpy as np
 
-_DB_PATH     = Path(__file__).parent / "categories_db.json"
-_BRANDS_PATH = Path(__file__).parent / "brands_db.json"
+_DB_PATH     = Path(__file__).parent / "config" / "categories_db.json"
+_BRANDS_PATH = Path(__file__).parent / "config" / "brands_db.json"
 
 # Global brand → keyword list (config once, reference by name in categories)
 DEFAULT_BRANDS: dict[str, list[str]] = {

@@ -5,8 +5,8 @@ import pandas as pd
 from pathlib import Path
 
 DATA_PATH    = Path(__file__).parent / "data" / "Slips.xlsx"
-_STORES_PATH = Path(__file__).parent / "stores_db.json"
-_IGNORE_PATH = Path(__file__).parent / "ignore_db.json"
+_STORES_PATH = Path(__file__).parent / "config" / "stores_db.json"
+_IGNORE_PATH = Path(__file__).parent / "config" / "ignore_db.json"
 
 DEFAULT_IGNORE_KEYWORDS: list[str] = [
     "ส่วนลด", "discount", "coupon", "คูปอง",

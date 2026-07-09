@@ -76,16 +76,19 @@ Single-page Streamlit dashboard (`dashboard.py`) with four tabs. Data flows one 
 - After saving categories or store chains from the UI, caches are cleared via `.clear()` and `st.rerun()`.
 
 ### Persistent state (JSON files)
+All config files live in `config/`. Paths are set as module-level constants using `Path(__file__).parent / "config" / "*.json"`.
+
 | File | Purpose | Managed by |
 |------|---------|------------|
-| `categories_db.json` | Category → keywords, brand list, SKU types | `categorizer.py` |
-| `brands_db.json` | Brand name → keyword list (global lookup) | `categorizer.py` |
-| `stores_db.json` | Store chain → keyword lists + online set | `data_loader.py` |
-| `ignore_db.json` | Item name substrings to exclude from pipeline | `data_loader.py` |
+| `config/categories_db.json` | Category → keywords, brand list, SKU types | `categorizer.py` |
+| `config/brands_db.json` | Brand name → keyword list (global lookup) | `categorizer.py` |
+| `config/stores_db.json` | Store chain → keyword lists + online set | `data_loader.py` |
+| `config/ignore_db.json` | Item name substrings to exclude from pipeline | `data_loader.py` |
+| `config/segments_db.json` | Category affinity segment rules (flat list) | `segment_helper.py` |
 
 All files are committed to git and auto-created on first save if missing. New default entries are auto-merged into existing saved configs on load. On Streamlit Cloud, `_git_persist()` pushes changes back to GitHub on each Save so config survives reboots.
 
-**Data filter** (`load_data()`): rows must satisfy `slip_status == "approve"` AND `item_verify == 1` AND `item_price > 0` AND item name must not match any keyword in `ignore_db.json` (default: ส่วนลด, ธนาคาร, ทรูมันนี่, etc.).
+**Data filter** (`load_data()`): rows must satisfy `slip_status == "approve"` AND `item_verify == 1` AND `item_price > 0` AND item name must not match any keyword in `config/ignore_db.json` (default: ส่วนลด, ธนาคาร, ทรูมันนี่, etc.).
 
 ### Tab layout
 | Tab | Function | Content |

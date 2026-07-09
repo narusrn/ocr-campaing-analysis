@@ -5,7 +5,7 @@ from collections import defaultdict
 from pathlib import Path
 import pandas as pd
 
-_SEGMENTS_PATH = Path(__file__).parent / "segments_db.json"
+_SEGMENTS_PATH = Path(__file__).parent / "config" / "segments_db.json"
 
 CHANNEL_SEGMENTS: dict[str, list[str]] = {
     "Convenience Store Shopper": ["7-Eleven", "FamilyMart", "CJ Express"],

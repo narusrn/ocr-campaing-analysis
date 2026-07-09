@@ -1036,7 +1036,7 @@ def tab_categories():
         st.session_state.brands_gen     = bgen + 1
         st.session_state.cats_working   = new_cats
         st.session_state.cats_gen       = gen + 1
-        _git_persist("brands_db.json", "categories_db.json")
+        _git_persist("config/brands_db.json", "config/categories_db.json")
         st.success(f"Saved — {len(new_brands)} brands · {len(new_cats)} categories")
         st.rerun(scope="fragment")
 
@@ -1099,7 +1099,7 @@ def tab_categories():
         st.session_state.stores_working = new_chains
         st.session_state.stores_online  = new_online
         st.session_state.stores_gen     = sgen + 1
-        _git_persist("stores_db.json")
+        _git_persist("config/stores_db.json")
         st.success("Saved! Store data will reload on next tab visit.")
         st.rerun(scope="fragment")
 
@@ -1199,7 +1199,7 @@ def tab_categories():
         save_ignore_db(new_ig)
         get_all_data.clear()
         st.session_state.ignore_working = new_ig
-        _git_persist("ignore_db.json")
+        _git_persist("config/ignore_db.json")
         st.success(f"Saved {len(new_ig)} ignore keywords — data will reload on next visit")
         st.rerun(scope="fragment")
 
@@ -1266,7 +1266,7 @@ def tab_categories():
         save_category_segments(new_segs)
         st.session_state.segs_working = new_segs
         st.session_state.segs_gen     = segs_gen + 1
-        _git_persist("segments_db.json")
+        _git_persist("config/segments_db.json")
         st.success(f"Saved — {len(new_segs)} rows ({len({r['segment'] for r in new_segs})} segments)")
         st.rerun(scope="fragment")
 
