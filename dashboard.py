@@ -799,30 +799,45 @@ def tab_segments():
 
     # ── All Segments Overview ─────────────────────────────────────────────
     section("📊 ALL SEGMENTS — MEMBER COUNT")
-    def _seg_children(names, colors):
-        return [
-            {"name": n, "value": len(segs[n]["members"]),
-             "itemStyle": {"color": colors[i % len(colors)]}}
-            for i, n in enumerate(names) if n in segs and segs[n]["members"]
-        ]
     ch_names  = list(CHANNEL_SEGMENTS.keys()) + [ONLINE_SEGMENT]
     cat_names = list(dict.fromkeys(r["segment"] for r in load_category_segments()))
     beh_names = ["Heavy Shopper", "Bulk Shopper", "Promotion Shopper"]
-    _tm_data = [
-        {"name": "🏪 Channel",          "children": _seg_children(ch_names,  PALETTE[:3]),  "itemStyle": {"color": PALETTE[0]}},
-        {"name": "🛒 Category Affinity","children": _seg_children(cat_names, PALETTE[1:4]), "itemStyle": {"color": PALETTE[1]}},
-        {"name": "⚡ Behavior",          "children": _seg_children(beh_names, PALETTE[2:5]), "itemStyle": {"color": PALETTE[2]}},
-    ]
-    ec.render({
-        "backgroundColor": "#E8EFF9",
-        "tooltip": {"formatter": ec.JS("function(p){if(!p.data.children)return p.marker+'<b>'+p.name+'</b><br>Members: <b>'+(p.value||0).toLocaleString()+'</b>';return p.name;}")},
-        "series": [{"type": "treemap", "data": _tm_data, "width": "100%", "height": "100%",
-                    "roam": False,
-                    "label": {"show": True, "formatter": ec.JS("function(p){return p.name+'\\n'+(p.value||'').toLocaleString();}"),
-                              "fontSize": 12, "color": "#fff"},
-                    "upperLabel": {"show": True, "height": 28, "fontSize": 12, "fontWeight": "bold", "color": "#fff"},
-                    "breadcrumb": {"show": False}}],
-    }, height=440)
+
+    def _seg_bar(title, names, color):
+        rows = sorted(
+            [(n, len(segs[n]["members"])) for n in names if n in segs and segs[n]["members"]],
+            key=lambda x: x[1],
+        )
+        if not rows:
+            return
+        cats = [r[0] for r in rows]
+        vals = [r[1] for r in rows]
+        max_val = max(vals) or 1
+        ec.render({
+            "backgroundColor": "#E8EFF9",
+            "title": {"text": title, "textStyle": {"fontSize": 12, "fontWeight": "bold", "color": "#182B45"}, "top": 0, "left": 0},
+            "grid": {"top": 32, "bottom": 4, "left": 8, "right": 56, "containLabel": True},
+            "xAxis": {"type": "value", "show": False, "max": max_val * 1.25},
+            "yAxis": {"type": "category", "data": cats,
+                      "axisTick": {"show": False}, "axisLine": {"show": False},
+                      "axisLabel": {"fontSize": 10, "color": "#182B45"}},
+            "tooltip": {"trigger": "axis", **ec._tt(),
+                        "formatter": ec.JS("function(p){return p[0].marker+p[0].name+': <b>'+p[0].value.toLocaleString()+'</b> members';}")},
+            "series": [{"type": "bar", "data": vals,
+                        "itemStyle": {"color": color, "borderRadius": [0, 6, 6, 0]},
+                        "barMaxWidth": 22,
+                        "label": {"show": True, "position": "right",
+                                  "color": "#3D4F66", "fontSize": 10,
+                                  "formatter": ec.JS("function(p){return p.value.toLocaleString();}")}}],
+        }, height=max(200, len(cats) * 34 + 56))
+
+    col_ch, col_cat, col_beh = st.columns(3)
+    with col_ch:
+        _seg_bar("🏪 Retail Channel", ch_names, "#5470c6")
+    with col_cat:
+        _seg_bar("🛒 Category Affinity", cat_names, "#e07b39")
+    with col_beh:
+        _seg_bar("⚡ Shopper Behavior", beh_names, "#3ba272")
 
     # ── Retail Channel ────────────────────────────────────────────────────
     section("🏪 RETAIL CHANNEL PREFERENCE")
