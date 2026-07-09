@@ -406,7 +406,7 @@ def tab_overview():
     for col, label, val, color in zip(c, [
         "Total Revenue", "Total Orders", "Unique Members", "Avg Basket", "Campaigns", "OCR Accuracy"
     ], [
-        f"฿{all_items['item_price'].sum():,.2f}",
+        f"฿{all_items['item_price'].sum()/1000:,.1f}K",
         f"{all_slip['slip_id'].nunique():,}",
         f"{all_slip['member'].nunique():,}",
         f"฿{all_items.groupby('slip_id')['item_price'].sum().mean():,.2f}",
