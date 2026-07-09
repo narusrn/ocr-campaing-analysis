@@ -109,15 +109,6 @@ button, input, textarea, select, label {
 }
 
 /* ── KPI cards ────────────────────────────────────────────────────── */
-[data-testid="stHorizontalBlock"]:has(.kpi-card) {
-    align-items: stretch;
-}
-[data-testid="stHorizontalBlock"]:has(.kpi-card) > [data-testid="column"] {
-    display: flex; flex-direction: column;
-}
-[data-testid="stHorizontalBlock"]:has(.kpi-card) > [data-testid="column"] > div {
-    flex: 1; display: flex; flex-direction: column;
-}
 .kpi-card {
     background: #ffffff;
     border-radius: 12px;
@@ -126,7 +117,6 @@ button, input, textarea, select, label {
     border: 1px solid #E4E7ED;
     box-shadow: 0px 2px 4px -2px #0000000f, 0px 4px 8px -2px #0000001a;
     transition: transform 0.18s ease, box-shadow 0.18s ease;
-    flex: 1; display: flex; flex-direction: column; justify-content: center;
 }
 .kpi-card:hover {
     transform: translateY(-2px);
