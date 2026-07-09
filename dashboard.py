@@ -797,6 +797,25 @@ def tab_segments():
     segs          = compute_segments(cat_df, get_promotion_slip_ids())
     total_members = int(cat_df["member"].nunique())
 
+    # ── All Segments Overview ─────────────────────────────────────────────
+    section("📊 ALL SEGMENTS — MEMBER COUNT")
+    all_seg_names = (
+        list(CHANNEL_SEGMENTS.keys()) + [ONLINE_SEGMENT]
+        + list(dict.fromkeys(r["segment"] for r in load_category_segments()))
+        + ["Heavy Shopper", "Bulk Shopper", "Promotion Shopper"]
+    )
+    all_seg_data = sorted(
+        [(n, len(segs[n]["members"])) for n in all_seg_names if n in segs and segs[n]["members"]],
+        key=lambda x: x[1],
+    )
+    if all_seg_data:
+        ec.bar_h(
+            categories=[x[0] for x in all_seg_data],
+            values=[x[1] for x in all_seg_data],
+            color=PALETTE[0],
+            height=max(300, len(all_seg_data) * 36 + 80),
+        )
+
     # ── Retail Channel ────────────────────────────────────────────────────
     section("🏪 RETAIL CHANNEL PREFERENCE")
     ch_names = list(CHANNEL_SEGMENTS.keys()) + [ONLINE_SEGMENT]
