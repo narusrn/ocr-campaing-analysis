@@ -369,15 +369,20 @@ def tab_overview():
     )
 
     # KPI row
-    c = st.columns(5)
+    _ocr_acc = (
+        f"{(all_items['item_name'] == all_items['item_ocrname']).mean() * 100:.1f}%"
+        if "item_ocrname" in all_items.columns else "N/A"
+    )
+    c = st.columns(6)
     for col, label, val, color in zip(c, [
-        "Total Revenue", "Total Orders", "Unique Members", "Avg Basket", "Campaigns"
+        "Total Revenue", "Total Orders", "Unique Members", "Avg Basket", "Campaigns", "OCR Accuracy"
     ], [
         f"฿{all_items['item_price'].sum():,.2f}",
         f"{all_slip['slip_id'].nunique():,}",
         f"{all_slip['member'].nunique():,}",
         f"฿{all_items.groupby('slip_id')['item_price'].sum().mean():,.2f}",
         str(len(filtered)),
+        _ocr_acc,
     ], PALETTE):
         with col:
             kpi(label, val, color=color)
