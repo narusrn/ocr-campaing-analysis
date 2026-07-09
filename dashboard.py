@@ -846,9 +846,10 @@ def tab_segments():
     section("⚡ SHOPPER BEHAVIOR")
     heavy_cnt = len(segs["Heavy Shopper"]["members"])
     bulk_cnt  = len(segs["Bulk Shopper"]["members"])
+    promo_cnt = len(segs.get("Promotion Shopper", {}).get("members", set()))
     other_cnt = total_members - len(segs["Heavy Shopper"]["members"] | segs["Bulk Shopper"]["members"])
 
-    col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
+    col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
     with col_kpi1:
         kpi("Total Members", f"{total_members:,}", color=PALETTE[0])
     with col_kpi2:
@@ -857,14 +858,17 @@ def tab_segments():
     with col_kpi3:
         sub_b = f"{bulk_cnt / total_members * 100:.1f}% · item qty ≥ 3" if total_members else "n/a"
         kpi("Bulk Shopper", f"{bulk_cnt:,}", sub=sub_b, color=PALETTE[1])
+    with col_kpi4:
+        sub_p = f"{promo_cnt / total_members * 100:.1f}% · slip มีส่วนลด" if total_members else "n/a"
+        kpi("Promotion Shopper", f"{promo_cnt:,}", sub=sub_p, color=PALETTE[3])
 
     col_d1, col_d2 = st.columns(2)
     with col_d1:
         chart_title("BEHAVIOR SEGMENT DISTRIBUTION")
         ec.donut(
-            labels=["Heavy Shopper", "Bulk Shopper", "Others"],
-            values=[heavy_cnt, bulk_cnt, max(other_cnt, 0)],
-            colors=[PALETTE[2], PALETTE[1], PALETTE[4]],
+            labels=["Heavy Shopper", "Bulk Shopper", "Promotion Shopper", "Others"],
+            values=[heavy_cnt, bulk_cnt, promo_cnt, max(other_cnt, 0)],
+            colors=[PALETTE[2], PALETTE[1], PALETTE[3], PALETTE[4]],
             height=300,
             show_count=True,
             currency=False,
@@ -872,9 +876,10 @@ def tab_segments():
     with col_d2:
         chart_title("BEHAVIOR SEGMENT — REVENUE SHARE")
         ec.donut(
-            labels=["Heavy Shopper", "Bulk Shopper"],
-            values=[segs["Heavy Shopper"]["revenue"], segs["Bulk Shopper"]["revenue"]],
-            colors=[PALETTE[2], PALETTE[1]],
+            labels=["Heavy Shopper", "Bulk Shopper", "Promotion Shopper"],
+            values=[segs["Heavy Shopper"]["revenue"], segs["Bulk Shopper"]["revenue"],
+                    segs.get("Promotion Shopper", {}).get("revenue", 0)],
+            colors=[PALETTE[2], PALETTE[1], PALETTE[3]],
             height=300,
             show_count=False,
             currency=True,
