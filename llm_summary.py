@@ -403,7 +403,7 @@ Whenever possible, connect multiple metrics together instead of discussing each 
 
 Prioritize actionable business insights over descriptive statistics.
 
-Respond in Thai language."""
+Respond in English."""
 
 
 def _build_segments_user(ctx: dict) -> str:
@@ -434,7 +434,7 @@ def generate_segments_summary(ctx: dict) -> str:
         from openai import OpenAI  # noqa: PLC0415
         client = OpenAI(api_key=api_key)
         resp = client.chat.completions.create(
-            model="gpt-4.5-preview",
+            model="gpt-5.2",
             max_tokens=1024,
             messages=[
                 {"role": "system", "content": _SEGMENTS_SYSTEM},
