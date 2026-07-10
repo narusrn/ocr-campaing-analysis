@@ -1277,10 +1277,15 @@ def tab_categories():
 # ═════════════════════════════════════════════════════════════════════════════
 # Main
 # ═════════════════════════════════════════════════════════════════════════════
+_logo_img = f"<img src='data:image/png;base64,{_LOGO_B64}' style='height:52px'>" if _LOGO_B64 else ""
 st.markdown(
-    f"<h1 style='margin-bottom:0'><img src='data:image/png;base64,{_LOGO_B64}' style='height:36px;vertical-align:middle;margin-right:10px'>Campaign OCR Analytics</h1>" if _LOGO_B64 else "<h1 style='margin-bottom:0'>Campaign OCR Analytics</h1>"
-    f"<p style='color:#3362B0;margin-top:4px'>"
-    f"{' · '.join(selected)}  |  {d_from} → {d_to}  |  Approved slips only</p>",
+    f'<div style="display:flex;align-items:center;gap:14px;padding:32px 0 12px 0;">'
+    f'{_logo_img}'
+    f'<div>'
+    f'<div style="font-size:2rem;font-weight:800;color:#182B45;line-height:1.1;letter-spacing:-0.02em;">Campaign OCR Analytics</div>'
+    f'<div style="font-size:0.82rem;color:#64748b;margin-top:3px;">{" · ".join(selected)}&nbsp;&nbsp;|&nbsp;&nbsp;{d_from} → {d_to}</div>'
+    f'</div>'
+    f'</div>',
     unsafe_allow_html=True,
 )
 
