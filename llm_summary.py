@@ -14,7 +14,7 @@ Your objective is NOT to simply summarize numbers.
 
 Instead, identify meaningful patterns, explain WHY they happened, connect findings with marketing principles, and provide practical recommendations that business stakeholders can act on.
 
-The report should read like a presentation prepared by a Strategy Director for Brand Managers — and it must stay a true EXECUTIVE SUMMARY: tight and scannable in a few minutes, not an exhaustive deep-dive. Limit every section below to at most 2-4 short bullet points. If a section has no strong evidence behind it, skip that section entirely rather than padding it out.
+The report should read like a presentation prepared by a Strategy Director for Brand Managers — a true EXECUTIVE SUMMARY: tight and scannable in under 90 seconds. Maximum 3 sections, 2 bullets each. Skip any section without strong evidence. No padding, no filler.
 
 ----------------------------------------------------
 GENERAL WRITING STYLE
@@ -29,8 +29,9 @@ GENERAL WRITING STYLE
 - If evidence is insufficient, explicitly state that
 - Use business language instead of statistical jargon
 - Keep paragraphs short and easy to read — 1-2 sentences, never a wall of text
-- Organize every section with bullet points, 2-4 per section maximum
+- Organize every section with bullet points, max 2 per section
 - Skip a section entirely rather than including it with weak or padded content
+- Total output must not exceed 150 words
 
 ----------------------------------------------------
 FORMATTING
@@ -85,7 +86,7 @@ def _call_llm(user_content: str) -> str:
         client = OpenAI(api_key=api_key)
         resp = client.chat.completions.create(
             model=_MODEL,
-            max_completion_tokens=1024,
+            max_completion_tokens=512,
             messages=[
                 {"role": "system", "content": _SYSTEM_PROMPT},
                 {"role": "user",   "content": user_content},

@@ -152,34 +152,6 @@ button, input, textarea, select, label {
     display: flex; align-items: center; gap: 8px;
 }
 
-/* ── AI Insight card ──────────────────────────────────────────────── */
-[class*="st-key-ai_insight"] h3 {
-    font-size: 13px !important;
-    font-weight: 700 !important;
-    color: #182B45 !important;
-    margin: 14px 0 4px !important;
-    padding: 0 !important;
-}
-[class*="st-key-ai_insight"]p {
-    margin: 3px 0 6px !important;
-    line-height: 1.5 !important;
-}
-[class*="st-key-ai_insight"]li {
-    margin: 2px 0 !important;
-    line-height: 1.5 !important;
-}
-[class*="st-key-ai_insight"]blockquote {
-    border-left: 3px solid #0064F0;
-    padding-left: 12px;
-    margin: 8px 0 !important;
-    color: #182B45;
-    font-style: italic;
-}
-[class*="st-key-ai_insight"]table {
-    font-size: 13px !important;
-    margin: 8px 0 !important;
-}
-
 /* ── Expanders ────────────────────────────────────────────────────── */
 [data-testid="stExpander"] {
     background: #ffffff;
@@ -415,7 +387,7 @@ def tab_overview():
     ctx_json = _json.dumps(ctx, ensure_ascii=False, default=str, sort_keys=True)
     ctx_key  = f"{'-'.join(sorted(filtered.keys()))}|{d_from}|{d_to}"
     raw_text = get_insight(ctx_key, ctx_json)
-    with st.container(border=True, key="ai_insight_ov"):
+    with st.container(border=True):
         st.markdown(raw_text)
 
     # KPI row
@@ -560,7 +532,7 @@ def tab_products():
     p_ctx     = build_products_context(combined)
     p_ctx_key = f"prod|{'-'.join(sorted(filtered.keys()))}|{d_from}|{d_to}"
     p_raw = get_product_insight(p_ctx_key, _json.dumps(p_ctx, ensure_ascii=False, default=str))
-    with st.container(border=True, key="ai_insight_prod"):
+    with st.container(border=True):
         st.markdown(p_raw)
 
     section("CATEGORY BREAKDOWN")
@@ -724,7 +696,7 @@ def tab_customers():
     r_ctx     = build_rfm_context(rfm, rfm_camp)
     r_ctx_key = f"rfm|{rfm_camp}|{d_from}|{d_to}"
     r_raw = get_rfm_insight(r_ctx_key, _json.dumps(r_ctx, ensure_ascii=False, default=str))
-    with st.container(border=True, key="ai_insight_rfm"):
+    with st.container(border=True):
         st.markdown(r_raw)
 
     section("SEGMENT DISTRIBUTION & RFM MAP")
@@ -827,7 +799,7 @@ def tab_segments():
     seg_ctx_json = _json.dumps(seg_ctx, ensure_ascii=False, default=str)
     seg_ctx_key  = f"segs|{'|'.join(sorted(filtered.keys()))}|{d_from}|{d_to}"
     raw_seg = get_segments_insight(seg_ctx_key, seg_ctx_json)
-    with st.container(border=True, key="ai_insight_seg"):
+    with st.container(border=True):
         st.markdown(raw_seg)
 
     # ── Row 1: Channel + Behavior side by side ────────────────────────────
