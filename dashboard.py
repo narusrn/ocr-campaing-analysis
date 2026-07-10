@@ -152,6 +152,37 @@ button, input, textarea, select, label {
     display: flex; align-items: center; gap: 8px;
 }
 
+/* ── AI Insight card headings (match section-title style) ────────── */
+[class*="st-key-ai-summary"] h1,
+[class*="st-key-ai-summary"] h2,
+[class*="st-key-ai-summary"] h3,
+[class*="st-key-ai-summary"] h4 {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.2px !important;
+    color: #182B45 !important;
+    border-left: 4px solid #0064F0 !important;
+    padding: 4px 0 4px 12px !important;
+    margin: 18px 0 8px !important;
+    line-height: 1.3 !important;
+}
+[class*="st-key-ai-summary"] h1::before,
+[class*="st-key-ai-summary"] h2::before,
+[class*="st-key-ai-summary"] h3::before,
+[class*="st-key-ai-summary"] h4::before { content: "• "; }
+[class*="st-key-ai-summary"] h1:first-child,
+[class*="st-key-ai-summary"] h2:first-child,
+[class*="st-key-ai-summary"] h3:first-child { margin-top: 0 !important; }
+[class*="st-key-ai-summary"] p, [class*="st-key-ai-summary"] li {
+    line-height: 1.55 !important;
+    margin-bottom: 0.35em !important;
+}
+[class*="st-key-ai-summary"] ul, [class*="st-key-ai-summary"] ol {
+    margin-top: 0.2em !important;
+    margin-bottom: 0.6em !important;
+}
+
 /* ── Expanders ────────────────────────────────────────────────────── */
 [data-testid="stExpander"] {
     background: #ffffff;
@@ -387,7 +418,7 @@ def tab_overview():
     ctx_json = _json.dumps(ctx, ensure_ascii=False, default=str, sort_keys=True)
     ctx_key  = f"{'-'.join(sorted(filtered.keys()))}|{d_from}|{d_to}"
     raw_text = get_insight(ctx_key, ctx_json)
-    with st.container(border=True):
+    with st.container(border=True, key="ai-summary-ov"):
         st.markdown(raw_text)
 
     # KPI row
@@ -532,7 +563,7 @@ def tab_products():
     p_ctx     = build_products_context(combined)
     p_ctx_key = f"prod|{'-'.join(sorted(filtered.keys()))}|{d_from}|{d_to}"
     p_raw = get_product_insight(p_ctx_key, _json.dumps(p_ctx, ensure_ascii=False, default=str))
-    with st.container(border=True):
+    with st.container(border=True, key="ai-summary-prod"):
         st.markdown(p_raw)
 
     section("CATEGORY BREAKDOWN")
@@ -696,7 +727,7 @@ def tab_customers():
     r_ctx     = build_rfm_context(rfm, rfm_camp)
     r_ctx_key = f"rfm|{rfm_camp}|{d_from}|{d_to}"
     r_raw = get_rfm_insight(r_ctx_key, _json.dumps(r_ctx, ensure_ascii=False, default=str))
-    with st.container(border=True):
+    with st.container(border=True, key="ai-summary-rfm"):
         st.markdown(r_raw)
 
     section("SEGMENT DISTRIBUTION & RFM MAP")
@@ -799,7 +830,7 @@ def tab_segments():
     seg_ctx_json = _json.dumps(seg_ctx, ensure_ascii=False, default=str)
     seg_ctx_key  = f"segs|{'|'.join(sorted(filtered.keys()))}|{d_from}|{d_to}"
     raw_seg = get_segments_insight(seg_ctx_key, seg_ctx_json)
-    with st.container(border=True):
+    with st.container(border=True, key="ai-summary-seg"):
         st.markdown(raw_seg)
 
     # ── Row 1: Channel + Behavior side by side ────────────────────────────
