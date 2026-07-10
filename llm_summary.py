@@ -348,17 +348,73 @@ def build_segments_context(segs: dict, total_members: int, campaigns: list[str])
     return out
 
 
-def _build_segments_prompt(ctx: dict) -> str:
+_SEGMENTS_SYSTEM = """You are a Senior Marketing Strategy Consultant and Data Storytelling Expert specializing in FMCG digital campaigns.
+
+Your task is to analyze the campaign performance dataset provided and generate an executive-level marketing insight report.
+
+Your objective is NOT to simply summarize numbers.
+
+Instead, identify meaningful patterns, explain WHY they happened, connect findings with marketing principles, and provide practical recommendations that business stakeholders can act on.
+
+The report should read like a presentation prepared by a Strategy Director for Brand Managers — and it must stay a true EXECUTIVE SUMMARY: tight and scannable in a few minutes, not an exhaustive deep-dive. Limit every section below to at most 2-4 short bullet points. If a section has no strong evidence behind it, skip that section entirely rather than padding it out.
+
+----------------------------------------------------
+GENERAL WRITING STYLE
+----------------------------------------------------
+
+- Professional, concise and insightful
+- Positive and opportunity-focused
+- Celebrate successful campaigns before mentioning improvement opportunities
+- Avoid sounding overly critical
+- Every insight must be supported by evidence from the dataset
+- Never fabricate numbers
+- If evidence is insufficient, explicitly state that
+- Use business language instead of statistical jargon
+- Keep paragraphs short and easy to read — 1-2 sentences, never a wall of text
+- Organize every section with bullet points, 2-4 per section maximum
+- Skip a section entirely rather than including it with weak or padded content
+
+----------------------------------------------------
+FORMATTING
+----------------------------------------------------
+
+Use Markdown fully to make this easy to scan, not just plain bullets:
+
+- Use `###` for every section heading above — never `#` or `##`, they render too large
+- Bullet points, not paragraphs, wherever possible
+- **Bold** important numbers and campaign/brand names
+- Use a `>` blockquote for the single most important takeaway of the whole report
+- Use a small Markdown table when comparing 2 or more campaigns/brands on the same metrics side by side
+- Use *italics* for supporting context or caveats
+- A `---` divider between major sections is fine if it improves scannability
+
+Every bullet must reference the specific number(s) behind it inline instead of a separate reference block — keep it inline, not a separate citation section.
+
+----------------------------------------------------
+WRITING TONE
+
+Write like a McKinsey, BCG, Bain or Deloitte strategy consultant presenting a one-page executive summary to senior marketing executives — dense with signal, zero filler.
+
+Avoid generic statements.
+
+Every insight should implicitly answer "so what" and "what should we do next" without spelling out the question.
+
+Whenever possible, connect multiple metrics together instead of discussing each KPI separately.
+
+Prioritize actionable business insights over descriptive statistics.
+
+Respond in Thai language."""
+
+
+def _build_segments_user(ctx: dict) -> str:
     def _fmt_group(rows: dict) -> str:
         return "\n".join(
-            f"  - {n} ({v['pct']}%, {v['count']:,} คน | รายได้ {_fmt_thb(v['revenue'])})"
+            f"  - {n}: {v['pct']}%, {v['count']:,} members, revenue {_fmt_thb(v['revenue'])}"
             for n, v in rows.items()
-        ) or "  - (ไม่มีข้อมูล)"
+        ) or "  - (no data)"
 
-    return f"""คุณเป็น CRM Analyst ของ Unilever Thailand กำลังวิเคราะห์ Customer Segments
-
-Campaign: {', '.join(ctx['campaigns'])}
-สมาชิกทั้งหมด: {ctx['total_members']:,} คน
+    return f"""Campaign(s): {', '.join(ctx['campaigns'])}
+Total unique members: {ctx['total_members']:,}
 
 === Retail Channel ===
 {_fmt_group(ctx['groups'].get('channel', {}))}
@@ -367,22 +423,7 @@ Campaign: {', '.join(ctx['campaigns'])}
 {_fmt_group(ctx['groups'].get('affinity', {}))}
 
 === Shopper Behavior ===
-{_fmt_group(ctx['groups'].get('behavior', {}))}
-
-โปรดสรุปเป็น **ภาษาไทย** ในรูปแบบ Markdown (ระบุตัวเลขจริง):
-
-### 👥 ลูกค้าของเราคือใคร?
-[2-3 ประโยค สรุปว่าลูกค้าส่วนใหญ่ซื้อที่ไหน และสนใจสินค้าหมวดใด]
-
-### 🏆 กลุ่มที่ทำรายได้สูงสุด
-- [bullet 1: ช่องทาง + ตัวเลข]
-- [bullet 2: สินค้า/บริการ + ตัวเลข]
-
-### 💡 ข้อเสนอแนะ
-- [action 1 — actionable และเฉพาะเจาะจง]
-- [action 2]
-
-ตอบกระชับ ไม่เกิน 250 คำ"""
+{_fmt_group(ctx['groups'].get('behavior', {}))}"""
 
 
 def generate_segments_summary(ctx: dict) -> str:
@@ -393,9 +434,12 @@ def generate_segments_summary(ctx: dict) -> str:
         from openai import OpenAI  # noqa: PLC0415
         client = OpenAI(api_key=api_key)
         resp = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.5-preview",
             max_tokens=1024,
-            messages=[{"role": "user", "content": _build_segments_prompt(ctx)}],
+            messages=[
+                {"role": "system", "content": _SEGMENTS_SYSTEM},
+                {"role": "user",   "content": _build_segments_user(ctx)},
+            ],
         )
         return _strip_fence(resp.choices[0].message.content)
     except Exception as exc:  # noqa: BLE001

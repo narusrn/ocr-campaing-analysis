@@ -814,9 +814,9 @@ def tab_segments():
     seg_ctx      = build_segments_context(segs, total_members, list(filtered.keys()))
     seg_ctx_json = _json.dumps(seg_ctx, ensure_ascii=False, default=str)
     seg_ctx_key  = f"segs|{'|'.join(sorted(filtered.keys()))}|{d_from}|{d_to}"
-    raw_seg      = get_segments_insight(seg_ctx_key, seg_ctx_json)
-    st.markdown(f'<div class="insight-card">{highlight_insight(raw_seg)}</div>',
-                unsafe_allow_html=True)
+    raw_seg = get_segments_insight(seg_ctx_key, seg_ctx_json)
+    with st.container(border=True):
+        st.markdown(raw_seg)
 
     # ── Row 1: Channel + Behavior side by side ────────────────────────────
     col_left, col_right = st.columns([1.1, 0.9])
