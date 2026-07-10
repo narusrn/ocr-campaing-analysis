@@ -157,10 +157,10 @@ button, input, textarea, select, label {
 [class*="st-key-ai-summary"] h2,
 [class*="st-key-ai-summary"] h3,
 [class*="st-key-ai-summary"] h4 {
-    font-size: 11px !important;
+    font-size: 13px !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
-    letter-spacing: 1.2px !important;
+    letter-spacing: 0.8px !important;
     color: #182B45 !important;
     border-left: 4px solid #0064F0 !important;
     padding: 4px 0 4px 12px !important;
