@@ -153,6 +153,35 @@ button, input, textarea, select, label {
 }
 
 
+/* ── AI Summary scoped styles ─────────────────────────────────────── */
+[class*="st-key-ai-summary"] h1,
+[class*="st-key-ai-summary"] h2,
+[class*="st-key-ai-summary"] h3,
+[class*="st-key-ai-summary"] h4 {
+    font-size: 0.9rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    color: #182B45 !important;
+    padding-left: 12px !important;
+    border-left: 4px solid #0064F0 !important;
+    line-height: 1.3 !important;
+    margin: 0.9em 0 0.35em 0 !important;
+}
+[class*="st-key-ai-summary"] h1:first-child,
+[class*="st-key-ai-summary"] h2:first-child,
+[class*="st-key-ai-summary"] h3:first-child { margin-top: 0 !important; }
+[class*="st-key-ai-summary"] p,
+[class*="st-key-ai-summary"] li {
+    line-height: 1.55 !important;
+    margin-bottom: 0.35em !important;
+}
+[class*="st-key-ai-summary"] ul,
+[class*="st-key-ai-summary"] ol {
+    margin-top: 0.2em !important;
+    margin-bottom: 0.6em !important;
+}
+
 /* ── Expanders ────────────────────────────────────────────────────── */
 [data-testid="stExpander"] {
     background: #ffffff;
