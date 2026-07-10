@@ -45,8 +45,7 @@ from network_viz import render_item_network, render_legend, CAT_COLORS
 from llm_summary import (build_context, generate_summary,
                           build_products_context, generate_products_summary,
                           build_rfm_context, generate_rfm_summary,
-                          build_segments_context, generate_segments_summary,
-                          highlight_insight)
+                          build_segments_context, generate_segments_summary)
 
 st.set_page_config(
     page_title="Campaign OCR Analytics",
@@ -397,10 +396,8 @@ def tab_overview():
     ctx_json = _json.dumps(ctx, ensure_ascii=False, default=str, sort_keys=True)
     ctx_key  = f"{'-'.join(sorted(filtered.keys()))}|{d_from}|{d_to}"
     raw_text = get_insight(ctx_key, ctx_json)
-    st.markdown(
-        f'<div class="insight-card">{highlight_insight(raw_text)}</div>',
-        unsafe_allow_html=True,
-    )
+    with st.container(border=True):
+        st.markdown(raw_text)
 
     # KPI row
     _ocr_data = load_ocr_accuracy()
@@ -543,11 +540,9 @@ def tab_products():
     import json as _json
     p_ctx     = build_products_context(combined)
     p_ctx_key = f"prod|{'-'.join(sorted(filtered.keys()))}|{d_from}|{d_to}"
-    p_raw     = get_product_insight(p_ctx_key, _json.dumps(p_ctx, ensure_ascii=False, default=str))
-    st.markdown(
-        f'<div class="insight-card">{highlight_insight(p_raw)}</div>',
-        unsafe_allow_html=True,
-    )
+    p_raw = get_product_insight(p_ctx_key, _json.dumps(p_ctx, ensure_ascii=False, default=str))
+    with st.container(border=True):
+        st.markdown(p_raw)
 
     section("CATEGORY BREAKDOWN")
     c1, c2 = st.columns(2)
@@ -709,11 +704,9 @@ def tab_customers():
     import json as _json
     r_ctx     = build_rfm_context(rfm, rfm_camp)
     r_ctx_key = f"rfm|{rfm_camp}|{d_from}|{d_to}"
-    r_raw     = get_rfm_insight(r_ctx_key, _json.dumps(r_ctx, ensure_ascii=False, default=str))
-    st.markdown(
-        f'<div class="insight-card">{highlight_insight(r_raw)}</div>',
-        unsafe_allow_html=True,
-    )
+    r_raw = get_rfm_insight(r_ctx_key, _json.dumps(r_ctx, ensure_ascii=False, default=str))
+    with st.container(border=True):
+        st.markdown(r_raw)
 
     section("SEGMENT DISTRIBUTION & RFM MAP")
 
