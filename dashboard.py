@@ -156,9 +156,7 @@ button, input, textarea, select, label {
 [class*="st-key-ai_insight"] h3 {
     font-size: 13px !important;
     font-weight: 700 !important;
-    color: #0064F0 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
+    color: #182B45 !important;
     margin: 14px 0 4px !important;
     padding: 0 !important;
 }
