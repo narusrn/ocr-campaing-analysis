@@ -1,9 +1,13 @@
 import base64
 import subprocess
+import time as _time
 from pathlib import Path
 
 import streamlit as st
 import pandas as pd
+
+_t_import = _time.time()
+print(f"[startup] imports done: {_t_import:.2f}", flush=True)
 
 _LOGO_PATH = Path(__file__).parent / "assets" / "black-logo.png"
 _LOGO_B64  = base64.b64encode(_LOGO_PATH.read_bytes()).decode() if _LOGO_PATH.exists() else ""
@@ -361,7 +365,9 @@ def get_categorized(key, _df):
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
+_t0 = _time.time()
 all_data = get_all_data()
+print(f"[startup] get_all_data: {_time.time()-_t0:.2f}s", flush=True)
 campaign_names = list(all_data.keys())
 
 with st.sidebar:
