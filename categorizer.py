@@ -408,7 +408,8 @@ def add_categories_to_df(df, item_col: str = "item_name", on_progress=None):
     brands_db = load_brands_db()
     total     = len(names)
 
-    _prog("โหลด ML model...", 0.0)
+    if _model is None:
+        _prog("กำลัง download/load ML model... (ครั้งแรกอาจนาน 5-10 นาที)", 0.0)
     model = _load_model()
 
     # Encode ALL names once — shared by category ML, brand ML, SKU ML
