@@ -110,7 +110,7 @@ def _get_store_model():
     global _store_model
     if _store_model is None:
         from sentence_transformers import SentenceTransformer
-        _store_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L6-v2')
+        _store_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
     return _store_model
 
 
