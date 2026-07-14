@@ -5,9 +5,8 @@ from pathlib import Path
 
 import numpy as np
 
-_DB_PATH         = Path(__file__).parent / "config" / "categories_db.json"
-_BRANDS_PATH     = Path(__file__).parent / "config" / "brands_db.json"
-_CAT_VECS_PATH   = Path(__file__).parent / "config" / "category_vectors.npz"
+_DB_PATH     = Path(__file__).parent / "config" / "categories_db.json"
+_BRANDS_PATH = Path(__file__).parent / "config" / "brands_db.json"
 
 # Global brand → keyword list (config once, reference by name in categories)
 DEFAULT_BRANDS: dict[str, list[str]] = {
@@ -267,22 +266,10 @@ def _load_model():
 
 
 def _build_category_vectors(model):
-    import hashlib
     global _cat_vectors, _cat_names
     if _cat_vectors is not None:
         return _cat_names, _cat_vectors
     cats = load_categories_db()
-    h = hashlib.md5(
-        json.dumps({k: v.get("keywords", []) if isinstance(v, dict) else v
-                    for k, v in cats.items()}, sort_keys=True, ensure_ascii=False).encode()
-    ).hexdigest()
-    # Load from disk if hash matches (avoids model load on cold start)
-    if _CAT_VECS_PATH.exists():
-        npz = np.load(_CAT_VECS_PATH, allow_pickle=True)
-        if str(npz["hash"]) == h:
-            _cat_names   = list(npz["names"])
-            _cat_vectors = npz["vectors"]
-            return _cat_names, _cat_vectors
     _cat_names = list(cats.keys())
     vecs = []
     for cat_data in cats.values():
@@ -290,8 +277,6 @@ def _build_category_vectors(model):
         embs = model.encode([preprocess_name(e) for e in kws])
         vecs.append(embs.mean(axis=0))
     _cat_vectors = np.array(vecs)
-    np.savez(_CAT_VECS_PATH, vectors=_cat_vectors,
-             names=np.array(_cat_names), hash=np.array(h))
     return _cat_names, _cat_vectors
 
 
