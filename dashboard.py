@@ -1039,7 +1039,7 @@ def tab_categories():
         st.session_state.brands_gen     = bgen + 1
         st.session_state.cats_working   = new_cats
         st.session_state.cats_gen       = gen + 1
-        _git_persist("config/brands_db.json", "config/categories_db.json")
+        _git_persist("config/brands_db.json", "config/categories_db.json", "config/category_vectors.npz")
         st.success(f"Saved — {len(new_brands)} brands · {len(new_cats)} categories")
         st.rerun(scope="fragment")
 
@@ -1102,7 +1102,7 @@ def tab_categories():
         st.session_state.stores_working = new_chains
         st.session_state.stores_online  = new_online
         st.session_state.stores_gen     = sgen + 1
-        _git_persist("config/stores_db.json")
+        _git_persist("config/stores_db.json", "config/chain_vectors.npz")
         st.success("Saved! Store data will reload on next tab visit.")
         st.rerun(scope="fragment")
 

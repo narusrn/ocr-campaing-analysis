@@ -5,8 +5,9 @@ import pandas as pd
 from pathlib import Path
 
 DATA_PATH    = Path(__file__).parent / "data" / "Slips.xlsx"
-_STORES_PATH = Path(__file__).parent / "config" / "stores_db.json"
-_IGNORE_PATH = Path(__file__).parent / "config" / "ignore_db.json"
+_STORES_PATH      = Path(__file__).parent / "config" / "stores_db.json"
+_IGNORE_PATH      = Path(__file__).parent / "config" / "ignore_db.json"
+_CHAIN_VECS_PATH  = Path(__file__).parent / "config" / "chain_vectors.npz"
 
 DEFAULT_IGNORE_KEYWORDS: list[str] = [
     "ส่วนลด", "discount", "coupon", "คูปอง",
@@ -109,7 +110,7 @@ def _get_store_model():
     global _store_model
     if _store_model is None:
         from sentence_transformers import SentenceTransformer
-        _store_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+        _store_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L6-v2')
     return _store_model
 
 
@@ -121,6 +122,14 @@ def _build_chain_vectors(chain_keywords: dict[str, list[str]]):
     ).hexdigest()
     if _chain_vectors is not None and _chain_kw_hash == h:
         return _chain_names, _chain_vectors
+    # Load from disk if hash matches (avoids model load on cold start)
+    if _CHAIN_VECS_PATH.exists():
+        npz = np.load(_CHAIN_VECS_PATH, allow_pickle=True)
+        if str(npz["hash"]) == h:
+            _chain_names   = list(npz["names"])
+            _chain_vectors = npz["vectors"]
+            _chain_kw_hash = h
+            return _chain_names, _chain_vectors
     model = _get_store_model()
     _chain_names = list(chain_keywords.keys())
     vecs = []
@@ -129,6 +138,8 @@ def _build_chain_vectors(chain_keywords: dict[str, list[str]]):
         vecs.append(embs.mean(axis=0))
     _chain_vectors = np.array(vecs)
     _chain_kw_hash = h
+    np.savez(_CHAIN_VECS_PATH, vectors=_chain_vectors,
+             names=np.array(_chain_names), hash=np.array(h))
     return _chain_names, _chain_vectors
 
 
