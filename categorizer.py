@@ -260,6 +260,14 @@ def preprocess_name(text: str) -> str:
 def _load_model():
     global _model
     if _model is None:
+        import os
+        try:
+            import streamlit as st
+            token = st.secrets.get("HF_TOKEN", "")
+            if token:
+                os.environ["HF_TOKEN"] = token
+        except Exception:
+            pass
         from sentence_transformers import SentenceTransformer
         _model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
     return _model
