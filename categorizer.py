@@ -257,19 +257,14 @@ def preprocess_name(text: str) -> str:
 
 # ── ML category classification ────────────────────────────────────────────────
 
+_LOCAL_MODEL = Path(__file__).parent / "models" / "paraphrase-multilingual-MiniLM-L12-v2"
+
 def _load_model():
     global _model
     if _model is None:
-        import os
-        try:
-            import streamlit as st
-            token = st.secrets.get("HF_TOKEN", "")
-            if token:
-                os.environ["HF_TOKEN"] = token
-        except Exception:
-            pass
         from sentence_transformers import SentenceTransformer
-        _model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+        model_path = str(_LOCAL_MODEL) if _LOCAL_MODEL.exists() else 'paraphrase-multilingual-MiniLM-L12-v2'
+        _model = SentenceTransformer(model_path)
     return _model
 
 
