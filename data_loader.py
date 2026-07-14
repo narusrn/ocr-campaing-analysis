@@ -1,5 +1,6 @@
 import json
 import re
+import time
 import pandas as pd
 from pathlib import Path
 
@@ -112,11 +113,18 @@ def _classify_chains(names: list, chain_keywords: dict[str, list[str]]) -> list[
 
 def load_data() -> dict[str, pd.DataFrame]:
     """Load all sheets, filter approved, add derived columns."""
+    t0 = time.time()
     chain_keywords, online_chains = load_stores_db()
     ignore_kws = load_ignore_db()
+    print(f"[load_data] config loaded: {time.time()-t0:.2f}s", flush=True)
+
     result = {}
     for sheet, display in CAMPAIGNS.items():
+        t1 = time.time()
         df = pd.read_excel(DATA_PATH, sheet_name=sheet, engine="openpyxl")
+        print(f"[load_data] read_excel {sheet}: {time.time()-t1:.2f}s  rows={len(df)}", flush=True)
+
+        t1 = time.time()
         df["slip_created_at"] = pd.to_datetime(df["slip_created_at"], errors="coerce")
         df["slip_total"]      = pd.to_numeric(df["slip_total"],  errors="coerce")
         df["item_price"]      = pd.to_numeric(df["item_price"],  errors="coerce")
@@ -130,18 +138,21 @@ def load_data() -> dict[str, pd.DataFrame]:
             (df["item_price"] > 0) &
             (~_ignored)
         ].copy()
+        print(f"[load_data] filter {sheet}: {time.time()-t1:.2f}s  rows={len(df)}", flush=True)
 
+        t1 = time.time()
         df["date"]        = df["slip_created_at"].dt.date
         df["hour"]        = df["slip_created_at"].dt.hour
         df["day_of_week"] = df["slip_created_at"].dt.day_name()
         df["week"]        = df["slip_created_at"].dt.to_period("W").astype(str)
-
         df["store_chain"] = _classify_chains(df["merchantname"].tolist(), chain_keywords)
-        df["channel"] = df["store_chain"].apply(
-            lambda c: "Online" if c in online_chains else "Offline"
-        )
-        df["campaign"] = display
+        df["channel"]     = df["store_chain"].apply(lambda c: "Online" if c in online_chains else "Offline")
+        df["campaign"]    = display
+        print(f"[load_data] derive cols {sheet}: {time.time()-t1:.2f}s", flush=True)
+
         result[display] = df
+
+    print(f"[load_data] TOTAL: {time.time()-t0:.2f}s", flush=True)
     return result
 
 
