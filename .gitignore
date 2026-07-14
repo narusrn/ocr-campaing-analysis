@@ -34,3 +34,4 @@ Thumbs.db
 *.log
 *streamlit_log.txt
 C*UsersUser*.txt
+models/
