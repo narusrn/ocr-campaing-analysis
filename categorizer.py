@@ -411,16 +411,10 @@ def add_categories_to_df(df, item_col: str = "item_name", on_progress=None):
     _prog("โหลด ML model...", 0.0)
     model = _load_model()
 
-    # Encode ALL names once in batches — shared by category ML, brand ML, SKU ML
-    _prog(f"กำลัง encode 0/{total} rows", 0.1)
-    batch_size = 64
-    all_vecs_list = []
-    for i in range(0, total, batch_size):
-        batch = [_clean(n) for n in names[i:i+batch_size]]
-        all_vecs_list.append(model.encode(batch, show_progress_bar=False))
-        done = min(i + batch_size, total)
-        _prog(f"กำลัง encode {done}/{total} rows", 0.1 + 0.5 * done / total)
-    all_vecs = np.vstack(all_vecs_list) if all_vecs_list else np.array([])
+    # Encode ALL names once — shared by category ML, brand ML, SKU ML
+    _prog(f"กำลัง encode {total} rows...", 0.15)
+    all_vecs = model.encode([_clean(n) for n in names], batch_size=64, show_progress_bar=False)
+    _prog(f"encode เสร็จ ({total} rows)", 0.60)
 
     # ── Category: keyword pre-pass then ML ───────────────────────────────────
     _prog(f"Category keyword match ({total} rows)...", 0.62)
