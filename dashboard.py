@@ -1,13 +1,9 @@
 import base64
 import subprocess
-import time as _time
 from pathlib import Path
 
 import streamlit as st
 import pandas as pd
-
-_t_import = _time.time()
-print(f"[startup] imports done: {_t_import:.2f}", flush=True)
 
 _LOGO_PATH = Path(__file__).parent / "assets" / "black-logo.png"
 _LOGO_B64  = base64.b64encode(_LOGO_PATH.read_bytes()).decode() if _LOGO_PATH.exists() else ""
@@ -358,26 +354,14 @@ def get_segments_insight(ctx_key: str, ctx_json: str) -> str:
     return generate_segments_summary(json.loads(ctx_json))
 
 
-def get_categorized(key, df):
-    cache_key = f"_cat_{key}"
-    if cache_key not in st.session_state:
-        ph  = st.empty()
-        bar = ph.progress(0.0, text="🔄 กำลังจัดหมวดหมู่สินค้า...")
-        def _cb(text, frac):
-            bar.progress(min(frac, 1.0), text=f"🔄 {text}")
-        st.session_state[cache_key] = add_categories_to_df(df.copy(), on_progress=_cb)
-        ph.empty()
-    return st.session_state[cache_key]
-
-def _clear_cat_cache():
-    for k in [k for k in st.session_state if k.startswith("_cat_")]:
-        del st.session_state[k]
+@st.cache_data(show_spinner="Computing categories (first run ~1 min)...")
+def get_categorized(key, _df):
+    _ = key  # cache discriminator: one entry per campaign
+    return add_categories_to_df(_df.copy())
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
-_t0 = _time.time()
 all_data = get_all_data()
-print(f"[startup] get_all_data: {_time.time()-_t0:.2f}s", flush=True)
 campaign_names = list(all_data.keys())
 
 with st.sidebar:
@@ -569,7 +553,7 @@ def tab_products():
 
     # Guard: clear stale cache if brand/sku_type columns missing (old cached DFs)
     if "brand" not in combined.columns or "sku_type" not in combined.columns:
-        _clear_cat_cache()
+        get_categorized.clear()
         st.rerun()
 
     # ── AI Insights ───────────────────────────────────────────────────────────
@@ -827,7 +811,7 @@ def tab_segments():
     for name, df in filtered.items():
         cdf = get_categorized(name, df)
         if "category" not in cdf.columns:
-            _clear_cat_cache()
+            get_categorized.clear()
             st.rerun()
         cat_dfs[name] = cdf
     cat_df = pd.concat(cat_dfs.values())
@@ -1049,7 +1033,7 @@ def tab_categories():
             new_cats[cat] = {"keywords": kws, "brands": sel_br, "sku_types": sku_dict}
         save_categories_db(new_cats)
         reset_cache()
-        _clear_cat_cache()
+        get_categorized.clear()
 
         st.session_state.brands_working = new_brands
         st.session_state.brands_gen     = bgen + 1
@@ -1064,7 +1048,7 @@ def tab_categories():
         new_cats = dict(DEFAULT_CATEGORIES)
         save_categories_db(new_cats)
         reset_cache()
-        _clear_cat_cache()
+        get_categorized.clear()
         st.session_state.brands_working = dict(DEFAULT_BRANDS)
         st.session_state.brands_gen     = bgen + 1
         st.session_state.cats_working   = new_cats

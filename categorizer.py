@@ -257,14 +257,11 @@ def preprocess_name(text: str) -> str:
 
 # ── ML category classification ────────────────────────────────────────────────
 
-_LOCAL_MODEL = Path(__file__).parent / "models" / "paraphrase-multilingual-MiniLM-L12-v2"
-
 def _load_model():
     global _model
     if _model is None:
         from sentence_transformers import SentenceTransformer
-        model_path = str(_LOCAL_MODEL) if _LOCAL_MODEL.exists() else 'paraphrase-multilingual-MiniLM-L12-v2'
-        _model = SentenceTransformer(model_path)
+        _model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
     return _model
 
 
@@ -398,34 +395,20 @@ def _ml_fill(results: list, all_vecs, categories: list,
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
-def add_categories_to_df(df, item_col: str = "item_name", on_progress=None):
-    """Add category, cat_score, brand, sku_type columns. Returns df.
-    on_progress(text, fraction) called at key steps if provided."""
-    def _prog(text, frac):
-        if on_progress:
-            on_progress(text, frac)
-        print(f"[categorize] {text} ({frac*100:.0f}%)", flush=True)
-
+def add_categories_to_df(df, item_col: str = "item_name"):
+    """Add category, cat_score, brand, sku_type columns. Returns df."""
     names     = df[item_col].fillna("").tolist()
     cats_db   = load_categories_db()
     brands_db = load_brands_db()
-    total     = len(names)
-
-    if _model is None:
-        _prog("กำลัง download/load ML model... (ครั้งแรกอาจนาน 5-10 นาที)", 0.0)
-    model = _load_model()
+    model     = _load_model()
 
     # Encode ALL names once — shared by category ML, brand ML, SKU ML
-    _prog(f"กำลัง encode {total} rows...", 0.15)
     all_vecs = model.encode([_clean(n) for n in names], batch_size=64, show_progress_bar=False)
-    _prog(f"encode เสร็จ ({total} rows)", 0.60)
 
     # ── Category: keyword pre-pass then ML ───────────────────────────────────
-    _prog(f"Category keyword match ({total} rows)...", 0.62)
     kw_cats  = [_keyword_classify(n, cats_db) for n in names]
     needs_ml = [i for i, c in enumerate(kw_cats) if c is None]
     if needs_ml:
-        _prog(f"Category ML fallback ({len(needs_ml)} rows)...", 0.68)
         cat_names, cat_vecs = _build_category_vectors(model)
         sub      = all_vecs[np.array(needs_ml)]
         norms_c  = np.linalg.norm(cat_vecs, axis=1, keepdims=True)
@@ -444,15 +427,12 @@ def add_categories_to_df(df, item_col: str = "item_name", on_progress=None):
             categories.append(c);    cat_scores.append(1.0)
 
     # ── Brand: keyword then ML ────────────────────────────────────────────────
-    _prog("Brand matching...", 0.78)
     brands = [_match_brand(n, c, cats_db, brands_db) for n, c in zip(names, categories)]
     _ml_fill(brands, all_vecs, categories, cats_db, brands_db, "brands")
 
     # ── SKU type: keyword then ML ─────────────────────────────────────────────
-    _prog("SKU type matching...", 0.90)
     skus = [_match_in_cat(n, c, cats_db, "sku_types") for n, c in zip(names, categories)]
     _ml_fill(skus, all_vecs, categories, cats_db, None, "sku_types")
-    _prog("เสร็จแล้ว!", 1.0)
 
     df["category"]  = categories
     df["cat_score"] = cat_scores
