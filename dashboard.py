@@ -358,10 +358,20 @@ def get_segments_insight(ctx_key: str, ctx_json: str) -> str:
     return generate_segments_summary(json.loads(ctx_json))
 
 
-@st.cache_data(show_spinner="Computing categories (first run ~1 min)...")
-def get_categorized(key, _df):
-    _ = key  # cache discriminator: one entry per campaign
-    return add_categories_to_df(_df.copy())
+def get_categorized(key, df):
+    cache_key = f"_cat_{key}"
+    if cache_key not in st.session_state:
+        ph  = st.empty()
+        bar = ph.progress(0.0, text="🔄 กำลังจัดหมวดหมู่สินค้า...")
+        def _cb(text, frac):
+            bar.progress(min(frac, 1.0), text=f"🔄 {text}")
+        st.session_state[cache_key] = add_categories_to_df(df.copy(), on_progress=_cb)
+        ph.empty()
+    return st.session_state[cache_key]
+
+def _clear_cat_cache():
+    for k in [k for k in st.session_state if k.startswith("_cat_")]:
+        del st.session_state[k]
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -559,7 +569,7 @@ def tab_products():
 
     # Guard: clear stale cache if brand/sku_type columns missing (old cached DFs)
     if "brand" not in combined.columns or "sku_type" not in combined.columns:
-        get_categorized.clear()
+        _clear_cat_cache()
         st.rerun()
 
     # ── AI Insights ───────────────────────────────────────────────────────────
@@ -817,7 +827,7 @@ def tab_segments():
     for name, df in filtered.items():
         cdf = get_categorized(name, df)
         if "category" not in cdf.columns:
-            get_categorized.clear()
+            _clear_cat_cache()
             st.rerun()
         cat_dfs[name] = cdf
     cat_df = pd.concat(cat_dfs.values())
@@ -1039,7 +1049,7 @@ def tab_categories():
             new_cats[cat] = {"keywords": kws, "brands": sel_br, "sku_types": sku_dict}
         save_categories_db(new_cats)
         reset_cache()
-        get_categorized.clear()
+        _clear_cat_cache()
 
         st.session_state.brands_working = new_brands
         st.session_state.brands_gen     = bgen + 1
@@ -1054,7 +1064,7 @@ def tab_categories():
         new_cats = dict(DEFAULT_CATEGORIES)
         save_categories_db(new_cats)
         reset_cache()
-        get_categorized.clear()
+        _clear_cat_cache()
         st.session_state.brands_working = dict(DEFAULT_BRANDS)
         st.session_state.brands_gen     = bgen + 1
         st.session_state.cats_working   = new_cats

@@ -395,20 +395,39 @@ def _ml_fill(results: list, all_vecs, categories: list,
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
-def add_categories_to_df(df, item_col: str = "item_name"):
-    """Add category, cat_score, brand, sku_type columns. Returns df."""
+def add_categories_to_df(df, item_col: str = "item_name", on_progress=None):
+    """Add category, cat_score, brand, sku_type columns. Returns df.
+    on_progress(text, fraction) called at key steps if provided."""
+    def _prog(text, frac):
+        if on_progress:
+            on_progress(text, frac)
+        print(f"[categorize] {text} ({frac*100:.0f}%)", flush=True)
+
     names     = df[item_col].fillna("").tolist()
     cats_db   = load_categories_db()
     brands_db = load_brands_db()
-    model     = _load_model()
+    total     = len(names)
 
-    # Encode ALL names once — shared by category ML, brand ML, SKU ML
-    all_vecs = model.encode([_clean(n) for n in names], batch_size=64, show_progress_bar=False)
+    _prog("โหลด ML model...", 0.0)
+    model = _load_model()
+
+    # Encode ALL names once in batches — shared by category ML, brand ML, SKU ML
+    _prog(f"กำลัง encode 0/{total} rows", 0.1)
+    batch_size = 64
+    all_vecs_list = []
+    for i in range(0, total, batch_size):
+        batch = [_clean(n) for n in names[i:i+batch_size]]
+        all_vecs_list.append(model.encode(batch, show_progress_bar=False))
+        done = min(i + batch_size, total)
+        _prog(f"กำลัง encode {done}/{total} rows", 0.1 + 0.5 * done / total)
+    all_vecs = np.vstack(all_vecs_list) if all_vecs_list else np.array([])
 
     # ── Category: keyword pre-pass then ML ───────────────────────────────────
+    _prog(f"Category keyword match ({total} rows)...", 0.62)
     kw_cats  = [_keyword_classify(n, cats_db) for n in names]
     needs_ml = [i for i, c in enumerate(kw_cats) if c is None]
     if needs_ml:
+        _prog(f"Category ML fallback ({len(needs_ml)} rows)...", 0.68)
         cat_names, cat_vecs = _build_category_vectors(model)
         sub      = all_vecs[np.array(needs_ml)]
         norms_c  = np.linalg.norm(cat_vecs, axis=1, keepdims=True)
@@ -427,12 +446,15 @@ def add_categories_to_df(df, item_col: str = "item_name"):
             categories.append(c);    cat_scores.append(1.0)
 
     # ── Brand: keyword then ML ────────────────────────────────────────────────
+    _prog("Brand matching...", 0.78)
     brands = [_match_brand(n, c, cats_db, brands_db) for n, c in zip(names, categories)]
     _ml_fill(brands, all_vecs, categories, cats_db, brands_db, "brands")
 
     # ── SKU type: keyword then ML ─────────────────────────────────────────────
+    _prog("SKU type matching...", 0.90)
     skus = [_match_in_cat(n, c, cats_db, "sku_types") for n, c in zip(names, categories)]
     _ml_fill(skus, all_vecs, categories, cats_db, None, "sku_types")
+    _prog("เสร็จแล้ว!", 1.0)
 
     df["category"]  = categories
     df["cat_score"] = cat_scores
