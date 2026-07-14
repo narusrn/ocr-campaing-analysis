@@ -1,6 +1,5 @@
 import json
 import re
-import numpy as np
 import pandas as pd
 from pathlib import Path
 
@@ -54,14 +53,6 @@ DEFAULT_CHAIN_KEYWORDS: dict[str, list[str]] = {
 }
 DEFAULT_ONLINE_CHAINS: set[str] = {"Shopee", "Lazada", "TikTok", "Line Shop"}
 
-STORE_THRESHOLD = 0.1
-
-_store_model    = None
-_chain_vectors  = None
-_chain_names    = None
-_chain_kw_hash  = None
-
-
 def load_stores_db() -> tuple[dict[str, list[str]], set[str]]:
     if _STORES_PATH.exists():
         with open(_STORES_PATH, encoding="utf-8") as f:
@@ -105,51 +96,17 @@ def _normalize(s: str) -> str:
     return s
 
 
-def _get_store_model():
-    global _store_model
-    if _store_model is None:
-        from sentence_transformers import SentenceTransformer
-        _store_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-    return _store_model
-
-
-def _build_chain_vectors(chain_keywords: dict[str, list[str]]):
-    global _chain_vectors, _chain_names, _chain_kw_hash
-    import hashlib
-    h = hashlib.md5(
-        json.dumps(chain_keywords, sort_keys=True, ensure_ascii=False).encode()
-    ).hexdigest()
-    if _chain_vectors is not None and _chain_kw_hash == h:
-        return _chain_names, _chain_vectors
-    model = _get_store_model()
-    _chain_names = list(chain_keywords.keys())
-    vecs = []
-    for kws in chain_keywords.values():
-        embs = model.encode([_normalize(k) for k in kws], show_progress_bar=False)
-        vecs.append(embs.mean(axis=0))
-    _chain_vectors = np.array(vecs)
-    _chain_kw_hash = h
-    return _chain_names, _chain_vectors
-
-
 def _classify_chains(names: list, chain_keywords: dict[str, list[str]]) -> list[str]:
-    """Batch-classify merchant names via cosine similarity against chain keyword embeddings."""
-    model = _get_store_model()
-    chain_names, chain_vecs = _build_chain_vectors(chain_keywords)
-
-    unique = [n for n in dict.fromkeys(n for n in names if isinstance(n, str))]
-    normalized = [_normalize(n) for n in unique]
-    vecs = model.encode(normalized, batch_size=64, show_progress_bar=False)
-
-    norms_c = np.linalg.norm(chain_vecs, axis=1, keepdims=True)
-    norms_v = np.linalg.norm(vecs, axis=1, keepdims=True)
-    sims = (vecs @ chain_vecs.T) / (norms_v * norms_c.T + 1e-9)
-
+    """Classify merchant names via keyword substring matching."""
     lookup: dict[str, str] = {}
-    for i, name in enumerate(unique):
-        best_idx = int(np.argmax(sims[i]))
-        lookup[name] = chain_names[best_idx] if sims[i][best_idx] >= STORE_THRESHOLD else "Other"
-
+    for name in names:
+        if not isinstance(name, str) or name in lookup:
+            continue
+        n = _normalize(name)
+        lookup[name] = next(
+            (chain for chain, kws in chain_keywords.items() if any(k in n for k in kws)),
+            "Other",
+        )
     return [lookup.get(n, "Other") if isinstance(n, str) else "Other" for n in names]
 
 
