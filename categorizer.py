@@ -246,6 +246,16 @@ def reset_cache() -> None:
     _cat_names   = None
 
 
+def unload_model() -> None:
+    """Release ML model from memory. Call after classification is done."""
+    global _model, _cat_vectors, _cat_names
+    _model       = None
+    _cat_vectors = None
+    _cat_names   = None
+    import gc
+    gc.collect()
+
+
 # ── Text preprocessing ────────────────────────────────────────────────────────
 
 def preprocess_name(text: str) -> str:

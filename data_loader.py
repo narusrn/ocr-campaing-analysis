@@ -113,6 +113,17 @@ def _get_store_model():
     return _store_model
 
 
+def unload_store_model() -> None:
+    """Release store-chain ML model from memory."""
+    global _store_model, _chain_vectors, _chain_names, _chain_kw_hash
+    _store_model   = None
+    _chain_vectors = None
+    _chain_names   = None
+    _chain_kw_hash = None
+    import gc
+    gc.collect()
+
+
 def _build_chain_vectors(chain_keywords: dict[str, list[str]]):
     global _chain_vectors, _chain_names, _chain_kw_hash
     import hashlib
