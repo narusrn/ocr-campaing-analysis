@@ -56,7 +56,6 @@ DEFAULT_ONLINE_CHAINS: set[str] = {"Shopee", "Lazada", "TikTok", "Line Shop"}
 
 STORE_THRESHOLD = 0.1
 
-_store_model    = None
 _chain_vectors  = None
 _chain_names    = None
 _chain_kw_hash  = None
@@ -106,22 +105,18 @@ def _normalize(s: str) -> str:
 
 
 def _get_store_model():
-    global _store_model
-    if _store_model is None:
-        from sentence_transformers import SentenceTransformer
-        _store_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-    return _store_model
+    from categorizer import _load_model
+    return _load_model()
 
 
 def unload_store_model() -> None:
-    """Release store-chain ML model from memory."""
-    global _store_model, _chain_vectors, _chain_names, _chain_kw_hash
-    _store_model   = None
+    """Release store-chain ML model from memory (delegates to categorizer)."""
+    global _chain_vectors, _chain_names, _chain_kw_hash
     _chain_vectors = None
     _chain_names   = None
     _chain_kw_hash = None
-    import gc
-    gc.collect()
+    from categorizer import unload_model
+    unload_model()
 
 
 def _build_chain_vectors(chain_keywords: dict[str, list[str]]):
